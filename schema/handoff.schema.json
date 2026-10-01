@@ -1,0 +1,93 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Relay handoff revision",
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["schema_version", "handoff_id", "revision_id", "created_at", "project", "issue_reference", "predecessor_revision_ids", "scope", "continuation", "findings", "decisions", "code_state", "verification", "dependencies", "provenance"],
+  "properties": {
+    "schema_version": {"const": 1},
+    "handoff_id": {"$ref": "#/$defs/id"},
+    "revision_id": {"$ref": "#/$defs/id"},
+    "created_at": {"type": "string", "format": "date-time"},
+    "project": {
+      "type": "object", "additionalProperties": false,
+      "required": ["id", "root", "git_common_dir", "label"],
+      "properties": {
+        "id": {"$ref": "#/$defs/id"}, "root": {"type": "string", "minLength": 1},
+        "git_common_dir": {"$ref": "#/$defs/nullableString"}, "label": {"type": "string", "minLength": 1}
+      }
+    },
+    "issue_reference": {"$ref": "#/$defs/nullableString"},
+    "predecessor_revision_ids": {"type": "array", "items": {"$ref": "#/$defs/id"}, "uniqueItems": true},
+    "scope": {
+      "type": "object", "additionalProperties": false,
+      "required": ["title", "task", "goal", "constraints", "acceptance_criteria", "boundaries"],
+      "properties": {
+        "title": {"type": "string", "minLength": 1}, "task": {"type": "string", "minLength": 1}, "goal": {"type": "string", "minLength": 1},
+        "constraints": {"$ref": "#/$defs/strings"}, "acceptance_criteria": {"$ref": "#/$defs/strings"}, "boundaries": {"$ref": "#/$defs/strings"}
+      }
+    },
+    "continuation": {
+      "type": "object", "additionalProperties": false,
+      "required": ["status", "completed", "next_actions", "blockers", "open_questions"],
+      "properties": {
+        "status": {"type": "string", "minLength": 1}, "completed": {"$ref": "#/$defs/strings"},
+        "next_actions": {"$ref": "#/$defs/strings"}, "blockers": {"$ref": "#/$defs/strings"}, "open_questions": {"$ref": "#/$defs/strings"}
+      }
+    },
+    "findings": {"type": "array", "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["statement", "classification", "evidence", "evidence_limitations"],
+      "properties": {
+        "statement": {"type": "string", "minLength": 1}, "classification": {"enum": ["requirement", "observed", "hypothesis", "proposal"]},
+        "evidence": {"$ref": "#/$defs/strings"}, "evidence_limitations": {"$ref": "#/$defs/strings"}
+      }
+    }},
+    "decisions": {"type": "array", "items": {
+      "type": "object", "additionalProperties": false,
+      "required": ["statement", "status", "reason", "established_by", "evidence"],
+      "properties": {
+        "statement": {"type": "string", "minLength": 1}, "status": {"enum": ["accepted", "rejected", "unresolved"]},
+        "reason": {"$ref": "#/$defs/nullableString"}, "established_by": {"$ref": "#/$defs/nullableString"}, "evidence": {"$ref": "#/$defs/strings"}
+      }
+    }},
+    "code_state": {
+      "type": "object", "additionalProperties": false,
+      "required": ["base_commit", "branch", "relevant_paths", "dirty_paths", "unpublished_work", "pr_links", "artifacts", "limitations"],
+      "properties": {
+        "base_commit": {"$ref": "#/$defs/nullableString"}, "branch": {"$ref": "#/$defs/nullableString"},
+        "relevant_paths": {"$ref": "#/$defs/strings"}, "dirty_paths": {"$ref": "#/$defs/strings"}, "unpublished_work": {"$ref": "#/$defs/strings"},
+        "pr_links": {"$ref": "#/$defs/strings"}, "artifacts": {"$ref": "#/$defs/strings"}, "limitations": {"$ref": "#/$defs/strings"}
+      }
+    },
+    "verification": {
+      "type": "object", "additionalProperties": false, "required": ["checks", "not_run"],
+      "properties": {
+        "checks": {"type": "array", "items": {
+          "type": "object", "additionalProperties": false, "required": ["command", "result", "summary", "commit", "checked_at"],
+          "properties": {
+            "command": {"type": "string", "minLength": 1}, "result": {"enum": ["pass", "fail", "unknown"]}, "summary": {"type": "string", "minLength": 1},
+            "commit": {"$ref": "#/$defs/nullableString"}, "checked_at": {"type": ["string", "null"], "format": "date-time"}
+          }
+        }},
+        "not_run": {"$ref": "#/$defs/strings"}
+      }
+    },
+    "dependencies": {"type": "array", "items": {
+      "type": "object", "additionalProperties": false, "required": ["description", "rationale", "references"],
+      "properties": {"description": {"type": "string", "minLength": 1}, "rationale": {"type": "string", "minLength": 1}, "references": {"$ref": "#/$defs/strings"}}
+    }},
+    "provenance": {
+      "type": "object", "additionalProperties": false, "required": ["agent", "session", "sources", "context_completeness", "uncertainties"],
+      "properties": {
+        "agent": {"$ref": "#/$defs/nullableString"}, "session": {"$ref": "#/$defs/nullableString"}, "sources": {"$ref": "#/$defs/strings"},
+        "context_completeness": {"enum": ["full", "partial", "unknown"]}, "uncertainties": {"$ref": "#/$defs/strings"}
+      }
+    }
+  },
+  "$defs": {
+    "id": {"type": "string", "pattern": "^[a-z0-9][a-z0-9-]{0,79}$"},
+    "nullableString": {"type": ["string", "null"]},
+    "strings": {"type": "array", "items": {"type": "string", "minLength": 1}}
+  }
+}

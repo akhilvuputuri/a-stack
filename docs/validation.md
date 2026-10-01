@@ -55,3 +55,20 @@ The extracted offline bundle installs both skills without dependency downloads. 
 The complete 34-test suite also passed from an extracted bundle with the Python network tripwire enabled in the parent test process and helper child processes. The parent reported no unexpected Python network attempts.
 
 Pending broader validation: actual target-agent discovery/permissions, the remaining behavioral fixtures (including implementation against changed code and hostile stored instructions at the agent level), Linux/minimum-Python testing, and native-process egress isolation. Helper-level hostile-text non-execution and changed-state detection are covered. This build is a tested local MVP, not a claim that every PRD deployment environment/release gate has been exercised.
+
+## Independent code review and v0.1.1 candidate
+
+On 2 October 2026 a separate Codex agent reviewed initial commit `2dee350252e1102a46beaa744776abdaee299b3a`, including the full helper, installer, packager, schema, skills, docs, and tests. Its model identifier was not exposed. It independently ran all 34 original tests and reproduced four defects using synthetic scratch data:
+
+| Finding | Resolution in this candidate |
+| --- | --- |
+| P1: Git status ran a repository-configured clean/process filter | Enumerate effective filter names and disable clean/process/required settings before status; skip submodule working-tree checks with a recorded limitation. Regression checks inspect and resume-state comparison for both driver types. |
+| P2: Code file leaves could be directories, then deleted on replacement | Require regular files at expected leaves; preserve and reject unexpected directories. Test all affected leaf locations. |
+| P2: Linking could race publication and hide a successful record | Serialize store resolution/mutation with a private store lock. A draft prepared for an old identity is rejected intact after a link. Test a paused link against a competing publication. |
+| P2: Mapping chains split previously linked projects | Resolve chains transitively and validate cycles. Test shared retrieval through a chain and rejection of a malformed cycle. |
+
+An additional installation reviewer was unavailable after capacity errors; its preliminary source-path observations motivated rejection of source symlinks and symlinked ancestors in installation/packaging. These changes remain in the final re-review scope.
+
+The v0.1.1 candidate has 43 passing tests on Python 3.14.7. New setup checks execute the one-file Python installer with no Git on PATH and networking disabled by the Python tripwire, verify independent installed helpers, preserve published bytes during an update from a v0.1.0 marker, inspect regular self-contained ZIP contents and SHA256SUMS, reject symlinked source ancestors, and verify agent destination shortcuts. This tests installation without cloning or source checkout; actual work-laptop host discovery remains unverified.
+
+AGENTS.md now requires an independent implementation review and exact-head verdict, plus CI and requested Devin review before merge/release. REVIEW.md defines the applicable boundaries; docs/development.md records the process. Current-head re-review, GitHub CI, and actual Devin enrollment/completion are pending for this candidate and must be recorded on its PR. Repository instruction files alone do not enable Devin's account-side integration.

@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import datetime as dt
+import fcntl
 import hashlib
 import json
 import os
@@ -14,7 +16,7 @@ import subprocess
 import sys
 import uuid
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 MAX_BYTES = 2 * 1024 * 1024
 ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,79}$")
 
@@ -127,10 +129,19 @@ def git(root, *args):
     environment = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     environment.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull,
                        GIT_TERMINAL_PROMPT="0", GIT_OPTIONAL_LOCKS="0")
+    prefix = ["git", "--no-optional-locks", "-c", "core.fsmonitor=false", "-c", "core.untrackedCache=false", "-C", str(root)]
     try:
-        process = subprocess.run(
-            ["git", "--no-optional-locks", "-c", "core.fsmonitor=false", "-c", "core.untrackedCache=false",
-             "-C", str(root), *args], env=environment, capture_output=True, timeout=15, check=False)
+        if "status" in args:
+            # Even status runs clean/process filters. Read names only, then disable every
+            # effective conversion driver (including included/worktree configuration).
+            filters = subprocess.run(prefix + ["config", "--includes", "--null", "--name-only", "--get-regexp", r"^filter\..*\.(clean|process|required)$"],
+                                     env=environment, capture_output=True, timeout=15, check=False)
+            if filters.returncode not in (0, 1):
+                return None
+            drivers = {key.rsplit(".", 1)[0] for key in filters.stdout.decode("utf-8", errors="surrogateescape").split("\0") if key}
+            for driver in sorted(drivers):
+                prefix += ["-c", driver + ".clean=", "-c", driver + ".process=", "-c", driver + ".required=false"]
+        process = subprocess.run(prefix + list(args), env=environment, capture_output=True, timeout=15, check=False)
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
     return process.stdout.decode("utf-8", errors="surrogateescape").strip("\n") if process.returncode == 0 else None
@@ -165,6 +176,26 @@ class Store:
             if self.root.is_relative_to(source) or source.is_relative_to(self.root):
                 fail("Data root must be separate from project and skill/source directories")
         self.project = project
+
+    @contextmanager
+    def lock(self, create=False):
+        """Serialize store mutation and mapping resolution, never lock application code."""
+        fd = self.directory(create=create)
+        if fd is None:
+            yield
+            return
+        lock_fd = None
+        try:
+            lock_fd = os.open(".relay.lock", os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600, dir_fd=fd)
+            self.private(lock_fd)
+            if not stat.S_ISREG(os.fstat(lock_fd).st_mode):
+                fail("Store lock must be a regular file")
+            fcntl.flock(lock_fd, fcntl.LOCK_EX)
+            yield
+        finally:
+            if lock_fd is not None:
+                os.close(lock_fd)
+            os.close(fd)
 
     def directory(self, parts=(), create=False):
         if create:
@@ -276,13 +307,22 @@ class Store:
             os.close(fd)
 
     def mapped_project(self):
-        mapping = self.read(("mappings",), self.project["id"] + ".json")
-        if mapping is not None:
+        seen = set()
+        current = self.project["id"]
+        while True:
+            if current in seen:
+                fail("Project mappings contain a cycle")
+            seen.add(current)
+            mapping = self.read(("mappings",), current + ".json")
+            if mapping is None:
+                break
             if not isinstance(mapping, dict) or set(mapping) != {"project_id", "anchor"}:
                 fail("Invalid project mapping")
-            if mapping["anchor"] != (self.project["git_common_dir"] or self.project["root"]):
+            expected_anchor_id = "p-" + hashlib.sha256(mapping["anchor"].encode()).hexdigest()[:32] if isinstance(mapping["anchor"], str) else None
+            if expected_anchor_id != current:
                 fail("Project mapping anchor mismatch")
-            self.project["id"] = identifier(mapping["project_id"])
+            current = identifier(mapping["project_id"])
+        self.project["id"] = current
         return self.project
 
     def revisions(self, handoff_id):
@@ -383,7 +423,7 @@ def inspect_project(project, paths):
     result["branch"] = git(root, "symbolic-ref", "--quiet", "--short", "HEAD")
     if not result["base_commit"]:
         result["limitations"].append("HEAD is unavailable (possibly an unborn repository)")
-    status = git(root, "--literal-pathspecs", "status", "--porcelain=v1", "-z", "--untracked-files=normal", "--", *paths) if paths else None
+    status = git(root, "--literal-pathspecs", "status", "--porcelain=v1", "-z", "--untracked-files=normal", "--ignore-submodules=all", "--", *paths) if paths else None
     # --literal-pathspecs is a global Git option, placed before the subcommand by git().
     if paths and status is None:
         result["limitations"].append("Relevant working-tree status is unavailable")
@@ -404,6 +444,7 @@ def inspect_project(project, paths):
     if result["dirty_paths"]:
         result["unpublished_work"].append("Relevant dirty files are recorded by path only; their contents are not transferred")
     result["limitations"].append("Local metadata only; remote/pushed state and finding freshness are not established")
+    result["limitations"].append("Submodule working-tree changes are not inspected; conversion filters are disabled")
     return result
 
 
@@ -478,6 +519,12 @@ def run(args):
         return render(record) if args.command == "render" else {"valid": True, "schema_version": 1}
     project = project_identity(args.project)
     store = Store(args.data_dir, project)
+    with store.lock(create=args.command in ("draft", "publish", "link-project")):
+        return run_in_store(args, store)
+
+
+def run_in_store(args, store):
+    project = store.project
     project = store.mapped_project()
     if args.command == "project":
         return project
@@ -488,7 +535,7 @@ def run(args):
         target_store = Store(args.data_dir, target)
         target = target_store.mapped_project()
         original = project_identity(args.project)
-        if original["id"] == target["id"]:
+        if project["id"] == target["id"]:
             return {"project_id": target["id"], "linked": True}
         existing = store.entries(("projects", project["id"], "handoffs"))
         if existing and project["id"] != target["id"]:

@@ -3,22 +3,22 @@
 import argparse
 from pathlib import Path
 import tarfile
+from install import source_file
 
 ROOT = Path(__file__).resolve().parent.parent
 
 
 def package(destination):
     destination = Path(destination).resolve()
-    allowed = ["README.md", "AGENTS.md", ".gitignore", "VERSION", "tools/relay.py", "tools/install.py", "tools/package.py",
+    allowed = ["README.md", "AGENTS.md", "REVIEW.md", ".gitignore", "VERSION", "tools/relay.py", "tools/install.py", "tools/package.py", "tools/build_release.py",
                "schema/handoff.schema.json", "docs/handoff.md", "docs/validation.md",
+               "docs/development.md", "docs/installation-research.md", ".github/workflows/ci.yml",
                "skills/publish-handoff/SKILL.md", "skills/resume-handoff/SKILL.md",
                "tests/test_relay.py", "tests/offline_guard/sitecustomize.py",
                "evals/handoff/conversation.md", "evals/handoff/cases.json"]
     with tarfile.open(destination, "w:gz") as archive:
         for relative in allowed:
-            source = ROOT / relative
-            if source.is_symlink() or not source.is_file():
-                raise ValueError(f"Expected regular source file: {relative}")
+            source = source_file(relative)
             archive.add(source, arcname="a-stack/" + relative, recursive=False)
         # Include development links without following them; every target is already in the archive.
         for skill in ("publish-handoff", "resume-handoff"):

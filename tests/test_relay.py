@@ -17,6 +17,7 @@ ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "tools"))
 import relay
 import install
+import build_release
 
 
 class RelayTests(unittest.TestCase):
@@ -418,6 +419,152 @@ class RelayTests(unittest.TestCase):
         failed = self.cli("draft", "--input", self.file(self.payload()), "--handoff-id", saved["handoff_id"], check=False)
         self.assertEqual(failed.returncode, 2)
         self.assertIn("explicit predecessors", failed.stderr)
+
+    def test_update_rejects_directories_at_code_file_leaves(self):
+        for leaf in ("SKILL.md", "scripts/relay.py", "scripts/handoff.schema.json", "references/handoff.md"):
+            target = self.base / ("install-" + leaf.replace("/", "-"))
+            install.install(target, ["resume-handoff"])
+            unexpected = target / "resume-handoff" / leaf
+            unexpected.unlink()
+            unexpected.mkdir()
+            retained = unexpected / "synthetic-record.json"
+            retained.write_text("preserve this file")
+            with self.assertRaises(ValueError):
+                install.install(target, ["resume-handoff"], replace=True)
+            self.assertEqual(retained.read_text(), "preserve this file")
+
+    def test_inspection_never_executes_clean_or_process_filters(self):
+        self.git_project()
+        (self.project / ".gitattributes").write_text("retry.py filter=synthetic\n")
+        self.git("add", ".gitattributes")
+        self.git("commit", "--quiet", "-m", "Synthetic filter attributes")
+        marker = self.base / "filter-executed"
+        program = self.base / "filter-program"
+        program.write_text(f"#!/bin/sh\ntouch '{marker}'\ncat\n")
+        program.chmod(0o700)
+        (self.project / "retry.py").write_text("changed\n")
+        for kind in ("clean", "process"):
+            self.git("config", "filter.synthetic." + kind, str(program))
+            self.git("config", "filter.synthetic.required", "true")
+            state = self.output("inspect", "--path", "retry.py")
+            self.assertIn("retry.py", state["dirty_paths"])
+            self.assertFalse(marker.exists())
+            payload = self.payload()
+            payload["code_state"] = state
+            saved = self.published(payload)
+            self.output("get", saved["handoff_id"], "--check-state", "--format", "json")
+            self.assertFalse(marker.exists())
+            self.git("config", "--unset", "filter.synthetic." + kind)
+
+    def test_mapping_chains_share_the_same_store(self):
+        second, third = self.base / "second", self.base / "third"
+        second.mkdir()
+        third.mkdir()
+        self.output("link-project", "--to", second)
+        self.output("link-project", "--to", third, project=second)
+        self.assertEqual(self.output("project")["id"], self.output("project", project=third)["id"])
+        saved = self.published(project=second)
+        self.assertEqual(self.output("get", saved["handoff_id"], "--format", "json")["record"]["revision_id"], saved["revision_id"])
+        self.output("link-project", "--to", third)
+
+    def test_mapping_cycle_is_rejected(self):
+        project = relay.project_identity(self.project)
+        store = relay.Store(self.data, project)
+        store.write(("mappings",), project["id"] + ".json", {"project_id": project["id"], "anchor": project["root"]})
+        self.assertEqual(self.cli("project", check=False).returncode, 2)
+
+    def test_linking_and_publication_are_serialized(self):
+        draft = self.draft()
+        other = self.base / "other"
+        other.mkdir()
+        script = self.base / "paused-link.py"
+        read_fd, write_fd = os.pipe()
+        script.write_text("import os, sys\n" + f"sys.path.insert(0, {str(ROOT / 'tools')!r})\n" +
+                          "import relay\noriginal_write = relay.Store.write\n" +
+                          "def paused(self, parts, name, record):\n" +
+                          "    if parts == ('mappings',):\n        print('ready', flush=True)\n" +
+                          f"        os.read({read_fd}, 1)\n" +
+                          "    return original_write(self, parts, name, record)\n" +
+                          "relay.Store.write = paused\nsys.exit(relay.main())\n")
+        link = subprocess.Popen([sys.executable, str(script), "--data-dir", str(self.data), "--project", str(self.project), "link-project", "--to", str(other)],
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=self.env, pass_fds=(read_fd,))
+        publisher = None
+        try:
+            self.assertEqual(link.stdout.readline().strip(), "ready")
+            publisher = subprocess.Popen([sys.executable, str(ROOT / "tools/relay.py"), "--data-dir", str(self.data), "--project", str(self.project), "publish", "--input", draft["path"]],
+                                         stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True, env=self.env)
+            self.assertIsNone(publisher.poll())
+            os.write(write_fd, b"x")
+            stdout, stderr = link.communicate(timeout=10)
+            self.assertEqual(link.returncode, 0, stderr)
+            stdout, stderr = publisher.communicate(timeout=10)
+            self.assertEqual(publisher.returncode, 2)
+            self.assertIn("another project", stderr)
+            self.assertTrue(Path(draft["path"]).exists())
+            self.assertEqual(self.output("list")["handoffs"], [])
+        finally:
+            os.close(read_fd)
+            os.close(write_fd)
+            for process in (link, publisher):
+                if process is not None and process.poll() is None:
+                    process.kill()
+                    process.communicate()
+
+    def test_one_file_installer_needs_no_git_or_source_checkout(self):
+        release = self.base / "release"
+        build_release.build(release)
+        empty_bin = self.base / "no-git-bin"
+        empty_bin.mkdir()
+        target = self.base / "zipapp-installed"
+        env = dict(self.env, PATH=str(empty_bin))
+        process = subprocess.run([sys.executable, str(release / "a-stack-install.pyz"), "--target", str(target)],
+                                 capture_output=True, text=True, env=env)
+        self.assertEqual(process.returncode, 0, process.stderr)
+        self.assertEqual(json.loads(process.stdout)["version"], "0.1.1")
+        helper = target / "publish-handoff/scripts/relay.py"
+        draft = self.output("draft", "--input", self.file(self.payload()), helper=helper)
+        saved = self.output("publish", "--input", draft["path"], helper=helper)
+        record_before = Path(saved["path"]).read_bytes()
+        # An original-version installation can be updated without touching stored context.
+        (target / "publish-handoff/.a-stack-version").write_text("0.1.0\n")
+        update = subprocess.run([sys.executable, str(release / "a-stack-install.pyz"), "--target", str(target), "--replace"],
+                                capture_output=True, text=True, env=env)
+        self.assertEqual(update.returncode, 0, update.stderr)
+        self.assertEqual(Path(saved["path"]).read_bytes(), record_before)
+        receiver = target / "resume-handoff/scripts/relay.py"
+        self.output("get", saved["handoff_id"], "--format", "json", helper=receiver)
+
+    def test_release_skill_zip_is_self_contained_and_checksums_match(self):
+        release = self.base / "release"
+        artifacts = build_release.build(release)
+        import hashlib
+        import zipfile
+        with zipfile.ZipFile(release / "a-stack-skills-0.1.1.zip") as archive:
+            for skill in install.SKILLS:
+                helper = archive.read(f"skills/{skill}/scripts/relay.py")
+                self.assertIn(b"def main()", helper)
+                self.assertIn(b"schema_version", archive.read(f"skills/{skill}/scripts/handoff.schema.json"))
+                self.assertFalse(any(info.external_attr >> 16 & 0o170000 == 0o120000 for info in archive.infolist()))
+        for line in (release / "SHA256SUMS").read_text().splitlines():
+            digest, filename = line.split("  ", 1)
+            self.assertEqual(hashlib.sha256((release / filename).read_bytes()).hexdigest(), digest)
+
+    def test_source_copy_and_package_reject_symlinked_ancestors(self):
+        source = self.base / "source"
+        source.mkdir()
+        external = self.base / "external"
+        external.mkdir()
+        (external / "handoff.md").write_text("synthetic outside-source content")
+        (source / "docs").symlink_to(external, target_is_directory=True)
+        with mock.patch.object(install, "ROOT", source):
+            with self.assertRaises(ValueError):
+                install.source_file("docs/handoff.md")
+
+    def test_agent_install_target_shortcuts(self):
+        for agent, suffix in (("codex", ".agents/skills"), ("claude-code", ".claude/skills")):
+            with mock.patch.object(install.Path, "home", return_value=self.base), mock.patch.object(sys, "argv", ["install.py", "--agent", agent]), mock.patch.object(install, "install", return_value=[]) as perform:
+                self.assertEqual(install.main(), 0)
+                self.assertEqual(perform.call_args.args[0], self.base / suffix)
 
 
 class NetworkTripwireTests(unittest.TestCase):

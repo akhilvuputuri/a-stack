@@ -131,16 +131,6 @@ def git(root, *args):
                        GIT_TERMINAL_PROMPT="0", GIT_OPTIONAL_LOCKS="0")
     prefix = ["git", "--no-optional-locks", "-c", "core.fsmonitor=false", "-c", "core.untrackedCache=false", "-C", str(root)]
     try:
-        if "status" in args:
-            # Even status runs clean/process filters. Read names only, then disable every
-            # effective conversion driver (including included/worktree configuration).
-            filters = subprocess.run(prefix + ["config", "--includes", "--null", "--name-only", "--get-regexp", r"^filter\..*\.(clean|process|required)$"],
-                                     env=environment, capture_output=True, timeout=15, check=False)
-            if filters.returncode not in (0, 1):
-                return None
-            drivers = {key.rsplit(".", 1)[0] for key in filters.stdout.decode("utf-8", errors="surrogateescape").split("\0") if key}
-            for driver in sorted(drivers):
-                prefix += ["-c", driver + ".clean=", "-c", driver + ".process=", "-c", driver + ".required=false"]
         process = subprocess.run(prefix + list(args), env=environment, capture_output=True, timeout=15, check=False)
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
@@ -423,29 +413,74 @@ def inspect_project(project, paths):
     result["branch"] = git(root, "symbolic-ref", "--quiet", "--short", "HEAD")
     if not result["base_commit"]:
         result["limitations"].append("HEAD is unavailable (possibly an unborn repository)")
-    status = git(root, "--literal-pathspecs", "status", "--porcelain=v1", "-z", "--untracked-files=normal", "--ignore-submodules=all", "--", *paths) if paths else None
-    # --literal-pathspecs is a global Git option, placed before the subcommand by git().
-    if paths and status is None:
-        result["limitations"].append("Relevant working-tree status is unavailable")
+    if paths:
+        dirty, limits = raw_dirty_paths(root, paths, result["base_commit"])
+        result["dirty_paths"] = dirty
+        result["limitations"].extend(limits)
     if not paths:
         result["limitations"].append("No relevant paths supplied; dirty state was not inspected")
-    if status:
-        entries = status.split("\0")
-        i = 0
-        while i < len(entries):
-            entry = entries[i]
-            if entry:
-                result["dirty_paths"].append(entry[3:])
-                if "R" in entry[:2] or "C" in entry[:2]:
-                    i += 1
-                    if i < len(entries) and entries[i]:
-                        result["dirty_paths"].append(entries[i])
-            i += 1
     if result["dirty_paths"]:
         result["unpublished_work"].append("Relevant dirty files are recorded by path only; their contents are not transferred")
     result["limitations"].append("Local metadata only; remote/pushed state and finding freshness are not established")
-    result["limitations"].append("Submodule working-tree changes are not inspected; conversion filters are disabled")
+    result["limitations"].append("Raw file comparisons bypass all conversions; submodule working-tree changes are not inspected")
     return result
+
+
+def raw_dirty_paths(root, paths, head):
+    """Compare index metadata and raw local bytes; never call Git status/diff on the working tree."""
+    index = git(root, "--literal-pathspecs", "ls-files", "--stage", "-z", "--", *paths)
+    untracked = git(root, "--literal-pathspecs", "ls-files", "--others", "--exclude-standard", "-z", "--", *paths)
+    staged = git(root, "--literal-pathspecs", "diff-index", "--cached", "--name-only", "--no-ext-diff", "--no-textconv", "-z", head, "--", *paths) if head else ""
+    if index is None or untracked is None or staged is None:
+        return [], ["Relevant index/working-tree metadata is unavailable"]
+    dirty = {x for x in (untracked + staged).split("\0") if x}
+    limits = []
+    for entry in index.split("\0"):
+        if not entry:
+            continue
+        metadata, name = entry.split("\t", 1)
+        mode, expected, stage = metadata.split()
+        if stage != "0" or not head:
+            dirty.add(name)
+        if mode == "160000":
+            continue
+        path = root / name
+        # Validate parents even for directory selectors containing escaping symlinks.
+        if not path.parent.resolve().is_relative_to(root):
+            dirty.add(name)
+            limits.append("A tracked path has an inaccessible/escaping parent; its contents were not read")
+            continue
+        try:
+            info = path.lstat()
+            digest = hashlib.sha256() if len(expected) == 64 else hashlib.sha1()
+            if mode == "120000":
+                if not stat.S_ISLNK(info.st_mode):
+                    dirty.add(name)
+                    continue
+                raw = os.fsencode(os.readlink(path))
+                digest.update(f"blob {len(raw)}\0".encode())
+                digest.update(raw)
+            else:
+                if not stat.S_ISREG(info.st_mode):
+                    dirty.add(name)
+                    continue
+                if bool(info.st_mode & stat.S_IXUSR) != (mode == "100755"):
+                    dirty.add(name)
+                fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
+                with os.fdopen(fd, "rb") as stream:
+                    opened = os.fstat(stream.fileno())
+                    if not stat.S_ISREG(opened.st_mode):
+                        dirty.add(name)
+                        continue
+                    digest.update(f"blob {opened.st_size}\0".encode())
+                    for chunk in iter(lambda: stream.read(65536), b""):
+                        digest.update(chunk)
+            if digest.hexdigest() != expected:
+                dirty.add(name)
+        except OSError:
+            dirty.add(name)
+            limits.append("A tracked file is missing or unreadable; its current contents could not be verified")
+    return sorted(dirty), list(dict.fromkeys(limits))
 
 
 def get_record(store, handoff_id, revision_id=None):

@@ -467,6 +467,62 @@ class RelayTests(unittest.TestCase):
         self.assertEqual(self.output("get", saved["handoff_id"], "--format", "json")["record"]["revision_id"], saved["revision_id"])
         self.output("link-project", "--to", third)
 
+    def test_filter_name_with_equals_is_disabled(self):
+        self.git_project()
+        (self.project / ".gitattributes").write_text("retry.py filter=synthetic=equals\n")
+        self.git("add", ".gitattributes")
+        self.git("commit", "--quiet", "-m", "Synthetic equals filter")
+        marker = self.base / "equals-filter-executed"
+        program = self.base / "equals-filter"
+        program.write_text(f"#!/bin/sh\ntouch '{marker}'\ncat\n")
+        program.chmod(0o700)
+        self.git("config", "filter.synthetic=equals.clean", str(program))
+        self.git("config", "filter.synthetic=equals.required", "true")
+        (self.project / "retry.py").write_text("changed\n")
+        state = self.output("inspect", "--path", "retry.py")
+        self.assertIn("retry.py", state["dirty_paths"])
+        self.assertFalse(marker.exists())
+
+    def test_filter_added_during_inspection_is_never_executed(self):
+        self.git_project()
+        (self.project / ".gitattributes").write_text("retry.py filter=late\n")
+        self.git("add", ".gitattributes")
+        self.git("commit", "--quiet", "-m", "Synthetic late filter attributes")
+        marker = self.base / "late-filter-executed"
+        program = self.base / "late-filter"
+        program.write_text(f"#!/bin/sh\ntouch '{marker}'\ncat\n")
+        program.chmod(0o700)
+        (self.project / "retry.py").write_text("changed\n")
+        actual_git = relay.git
+        injected = False
+        def concurrent_config(root, *args):
+            nonlocal injected
+            value = actual_git(root, *args)
+            if "--stage" in args and not injected:
+                self.git("config", "filter.late.clean", str(program))
+                injected = True
+            return value
+        with mock.patch.object(relay, "git", side_effect=concurrent_config):
+            state = relay.inspect_project(relay.project_identity(self.project), ["retry.py"])
+        self.assertTrue(injected)
+        self.assertIn("retry.py", state["dirty_paths"])
+        self.assertFalse(marker.exists())
+
+    def test_raw_inspection_reports_staged_deleted_untracked_and_symlink_changes(self):
+        self.git_project()
+        (self.project / "retry.py").unlink()
+        (self.project / "new.py").write_text("new\n")
+        self.git("add", "new.py")
+        (self.project / "untracked.py").write_text("untracked\n")
+        state = self.output("inspect", "--path", "retry.py", "--path", "new.py", "--path", "untracked.py")
+        self.assertEqual(set(state["dirty_paths"]), {"retry.py", "new.py", "untracked.py"})
+        (self.project / "link").symlink_to("new.py")
+        self.git("add", "link")
+        self.git("commit", "--quiet", "-m", "Synthetic link")
+        (self.project / "link").unlink()
+        (self.project / "link").symlink_to("retry.py")
+        self.assertIn("link", self.output("inspect", "--path", "link")["dirty_paths"])
+
     def test_mapping_cycle_is_rejected(self):
         project = relay.project_identity(self.project)
         store = relay.Store(self.data, project)

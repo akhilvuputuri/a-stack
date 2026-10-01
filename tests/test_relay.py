@@ -523,6 +523,55 @@ class RelayTests(unittest.TestCase):
         (self.project / "link").symlink_to("retry.py")
         self.assertIn("link", self.output("inspect", "--path", "link")["dirty_paths"])
 
+    def test_missing_promisor_objects_never_invoke_remote_helpers(self):
+        self.git_project()
+        tree = self.git("rev-parse", "HEAD^{tree}")
+        (self.project / ".git/objects" / tree[:2] / tree[2:]).unlink()
+        helper_bin = self.base / "helpers"
+        helper_bin.mkdir()
+        marker = self.base / "remote-helper-executed"
+        helper = helper_bin / "git-remote-synthetic"
+        helper.write_text(f"#!/bin/sh\ntouch '{marker}'\nexit 1\n")
+        helper.chmod(0o700)
+        self.git("config", "remote.synthetic.url", "synthetic::offline-canary")
+        self.git("config", "remote.synthetic.promisor", "true")
+        self.git("config", "extensions.partialClone", "synthetic")
+        self.env["PATH"] = str(helper_bin) + os.pathsep + self.env.get("PATH", "")
+        state = self.output("inspect", "--path", "retry.py")
+        self.assertFalse(marker.exists())
+        self.assertTrue(any("unavailable" in item for item in state["limitations"]))
+
+    def test_raw_inspection_parent_swap_never_reads_outside_project(self):
+        self.git_project()
+        selected = self.project / "selected"
+        selected.mkdir()
+        (selected / "probe.txt").write_text("before\n")
+        self.git("add", "selected/probe.txt")
+        self.git("commit", "--quiet", "-m", "Synthetic selected file")
+        (selected / "probe.txt").write_text("after!\n")
+        outside = self.base / "outside"
+        outside.mkdir()
+        (outside / "probe.txt").write_text("before\n")
+        outside_inode = (outside / "probe.txt").stat().st_ino
+        actual_open = relay.os.open
+        swapped = False
+        opened_inodes = []
+        def replace_parent(path, flags, *args, **kwargs):
+            nonlocal swapped
+            if path == "probe.txt" and kwargs.get("dir_fd") is not None and not swapped:
+                selected.rename(self.project / "selected-moved")
+                selected.symlink_to(outside, target_is_directory=True)
+                swapped = True
+            fd = actual_open(path, flags, *args, **kwargs)
+            if path == "probe.txt":
+                opened_inodes.append(os.fstat(fd).st_ino)
+            return fd
+        with mock.patch.object(relay.os, "open", side_effect=replace_parent):
+            state = relay.inspect_project(relay.project_identity(self.project), ["selected"])
+        self.assertTrue(swapped)
+        self.assertNotIn(outside_inode, opened_inodes)
+        self.assertIn("selected/probe.txt", state["dirty_paths"])
+
     def test_mapping_cycle_is_rejected(self):
         project = relay.project_identity(self.project)
         store = relay.Store(self.data, project)

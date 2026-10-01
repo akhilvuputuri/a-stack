@@ -128,7 +128,8 @@ def validate(record):
 def git(root, *args):
     environment = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     environment.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull,
-                       GIT_TERMINAL_PROMPT="0", GIT_OPTIONAL_LOCKS="0")
+                       GIT_TERMINAL_PROMPT="0", GIT_OPTIONAL_LOCKS="0",
+                       GIT_NO_LAZY_FETCH="1", GIT_ALLOW_PROTOCOL="")
     prefix = ["git", "--no-optional-locks", "-c", "core.fsmonitor=false", "-c", "core.untrackedCache=false", "-C", str(root)]
     try:
         process = subprocess.run(prefix + list(args), env=environment, capture_output=True, timeout=15, check=False)
@@ -426,6 +427,47 @@ def inspect_project(project, paths):
     return result
 
 
+@contextmanager
+def tracked_parent(root, name):
+    relative = Path(name)
+    if relative.is_absolute() or not relative.parts or ".." in relative.parts:
+        fail("Invalid tracked path")
+    fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        for part in relative.parts[:-1]:
+            child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+            os.close(fd)
+            fd = child
+        yield fd, relative.name
+    finally:
+        os.close(fd)
+
+
+def tracked_digest(root, name, mode, expected):
+    with tracked_parent(root, name) as (parent_fd, leaf):
+        info = os.stat(leaf, dir_fd=parent_fd, follow_symlinks=False)
+        digest = hashlib.sha256() if len(expected) == 64 else hashlib.sha1()
+        if mode == "120000":
+            if not stat.S_ISLNK(info.st_mode):
+                return None, True
+            raw = os.fsencode(os.readlink(leaf, dir_fd=parent_fd))
+            digest.update(f"blob {len(raw)}\0".encode())
+            digest.update(raw)
+            return digest.hexdigest(), False
+        if not stat.S_ISREG(info.st_mode):
+            return None, True
+        fd = os.open(leaf, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent_fd)
+        with os.fdopen(fd, "rb") as stream:
+            opened = os.fstat(stream.fileno())
+            if not stat.S_ISREG(opened.st_mode):
+                return None, True
+            mode_changed = bool(opened.st_mode & stat.S_IXUSR) != (mode == "100755")
+            digest.update(f"blob {opened.st_size}\0".encode())
+            for chunk in iter(lambda: stream.read(65536), b""):
+                digest.update(chunk)
+        return digest.hexdigest(), mode_changed
+
+
 def raw_dirty_paths(root, paths, head):
     """Compare index metadata and raw local bytes; never call Git status/diff on the working tree."""
     index = git(root, "--literal-pathspecs", "ls-files", "--stage", "-z", "--", *paths)
@@ -444,42 +486,13 @@ def raw_dirty_paths(root, paths, head):
             dirty.add(name)
         if mode == "160000":
             continue
-        path = root / name
-        # Validate parents even for directory selectors containing escaping symlinks.
-        if not path.parent.resolve().is_relative_to(root):
-            dirty.add(name)
-            limits.append("A tracked path has an inaccessible/escaping parent; its contents were not read")
-            continue
         try:
-            info = path.lstat()
-            digest = hashlib.sha256() if len(expected) == 64 else hashlib.sha1()
-            if mode == "120000":
-                if not stat.S_ISLNK(info.st_mode):
-                    dirty.add(name)
-                    continue
-                raw = os.fsencode(os.readlink(path))
-                digest.update(f"blob {len(raw)}\0".encode())
-                digest.update(raw)
-            else:
-                if not stat.S_ISREG(info.st_mode):
-                    dirty.add(name)
-                    continue
-                if bool(info.st_mode & stat.S_IXUSR) != (mode == "100755"):
-                    dirty.add(name)
-                fd = os.open(path, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK)
-                with os.fdopen(fd, "rb") as stream:
-                    opened = os.fstat(stream.fileno())
-                    if not stat.S_ISREG(opened.st_mode):
-                        dirty.add(name)
-                        continue
-                    digest.update(f"blob {opened.st_size}\0".encode())
-                    for chunk in iter(lambda: stream.read(65536), b""):
-                        digest.update(chunk)
-            if digest.hexdigest() != expected:
+            actual, mode_changed = tracked_digest(root, name, mode, expected)
+            if actual != expected or mode_changed:
                 dirty.add(name)
         except OSError:
             dirty.add(name)
-            limits.append("A tracked file is missing or unreadable; its current contents could not be verified")
+            limits.append("A tracked file or parent is missing, unreadable, or a parent symlink; its current contents could not be verified")
     return sorted(dirty), list(dict.fromkeys(limits))
 
 

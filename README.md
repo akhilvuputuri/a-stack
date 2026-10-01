@@ -7,7 +7,7 @@ Akhil's small collection of reusable coding and AI workflow skills. Start with *
 | `publish-handoff` | Select one topic, draft/save a local handoff, or publish an updated revision. |
 | `resume-handoff` | Retrieve/list handoffs, recheck relevant state, and explain the next step. Implement when the user asks. |
 
-Relay uses Python 3.11+ and only the standard library. The initial supported platform is macOS; Linux is intended but not yet tested. Windows is not supported in v0.1. No pip install, TypeScript, npm, daemon, database server, MCP server, telemetry, or remote handoff storage is required. New skills can be added independently of Relay.
+Relay uses Python 3.11+ and only the standard library. Its tests and installed-helper checks run on macOS and Linux in CI; target-agent discovery still needs verification in your environment. Windows is not supported in v0.1. No pip install, TypeScript, npm, daemon, database server, MCP server, telemetry, or remote handoff storage is required. New skills can be added independently of Relay.
 
 ## Install on another laptop without Git
 

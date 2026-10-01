@@ -3,7 +3,9 @@
 from __future__ import annotations
 
 import argparse
+from contextlib import contextmanager
 import datetime as dt
+import fcntl
 import hashlib
 import json
 import os
@@ -14,7 +16,7 @@ import subprocess
 import sys
 import uuid
 
-VERSION = "0.1.0"
+VERSION = "0.1.1"
 MAX_BYTES = 2 * 1024 * 1024
 ID = re.compile(r"^[a-z0-9][a-z0-9-]{0,79}$")
 
@@ -126,11 +128,11 @@ def validate(record):
 def git(root, *args):
     environment = {k: v for k, v in os.environ.items() if not k.startswith("GIT_")}
     environment.update(GIT_CONFIG_NOSYSTEM="1", GIT_CONFIG_GLOBAL=os.devnull,
-                       GIT_TERMINAL_PROMPT="0", GIT_OPTIONAL_LOCKS="0")
+                       GIT_TERMINAL_PROMPT="0", GIT_OPTIONAL_LOCKS="0",
+                       GIT_NO_LAZY_FETCH="1", GIT_ALLOW_PROTOCOL="")
+    prefix = ["git", "--no-optional-locks", "-c", "core.fsmonitor=false", "-c", "core.untrackedCache=false", "-C", str(root)]
     try:
-        process = subprocess.run(
-            ["git", "--no-optional-locks", "-c", "core.fsmonitor=false", "-c", "core.untrackedCache=false",
-             "-C", str(root), *args], env=environment, capture_output=True, timeout=15, check=False)
+        process = subprocess.run(prefix + list(args), env=environment, capture_output=True, timeout=15, check=False)
     except (FileNotFoundError, subprocess.TimeoutExpired):
         return None
     return process.stdout.decode("utf-8", errors="surrogateescape").strip("\n") if process.returncode == 0 else None
@@ -165,6 +167,26 @@ class Store:
             if self.root.is_relative_to(source) or source.is_relative_to(self.root):
                 fail("Data root must be separate from project and skill/source directories")
         self.project = project
+
+    @contextmanager
+    def lock(self, create=False):
+        """Serialize store mutation and mapping resolution, never lock application code."""
+        fd = self.directory(create=create)
+        if fd is None:
+            yield
+            return
+        lock_fd = None
+        try:
+            lock_fd = os.open(".relay.lock", os.O_RDWR | os.O_CREAT | os.O_NOFOLLOW | os.O_NONBLOCK, 0o600, dir_fd=fd)
+            self.private(lock_fd)
+            if not stat.S_ISREG(os.fstat(lock_fd).st_mode):
+                fail("Store lock must be a regular file")
+            fcntl.flock(lock_fd, fcntl.LOCK_EX)
+            yield
+        finally:
+            if lock_fd is not None:
+                os.close(lock_fd)
+            os.close(fd)
 
     def directory(self, parts=(), create=False):
         if create:
@@ -276,13 +298,22 @@ class Store:
             os.close(fd)
 
     def mapped_project(self):
-        mapping = self.read(("mappings",), self.project["id"] + ".json")
-        if mapping is not None:
+        seen = set()
+        current = self.project["id"]
+        while True:
+            if current in seen:
+                fail("Project mappings contain a cycle")
+            seen.add(current)
+            mapping = self.read(("mappings",), current + ".json")
+            if mapping is None:
+                break
             if not isinstance(mapping, dict) or set(mapping) != {"project_id", "anchor"}:
                 fail("Invalid project mapping")
-            if mapping["anchor"] != (self.project["git_common_dir"] or self.project["root"]):
+            expected_anchor_id = "p-" + hashlib.sha256(mapping["anchor"].encode()).hexdigest()[:32] if isinstance(mapping["anchor"], str) else None
+            if expected_anchor_id != current:
                 fail("Project mapping anchor mismatch")
-            self.project["id"] = identifier(mapping["project_id"])
+            current = identifier(mapping["project_id"])
+        self.project["id"] = current
         return self.project
 
     def revisions(self, handoff_id):
@@ -383,28 +414,86 @@ def inspect_project(project, paths):
     result["branch"] = git(root, "symbolic-ref", "--quiet", "--short", "HEAD")
     if not result["base_commit"]:
         result["limitations"].append("HEAD is unavailable (possibly an unborn repository)")
-    status = git(root, "--literal-pathspecs", "status", "--porcelain=v1", "-z", "--untracked-files=normal", "--", *paths) if paths else None
-    # --literal-pathspecs is a global Git option, placed before the subcommand by git().
-    if paths and status is None:
-        result["limitations"].append("Relevant working-tree status is unavailable")
+    if paths:
+        dirty, limits = raw_dirty_paths(root, paths, result["base_commit"])
+        result["dirty_paths"] = dirty
+        result["limitations"].extend(limits)
     if not paths:
         result["limitations"].append("No relevant paths supplied; dirty state was not inspected")
-    if status:
-        entries = status.split("\0")
-        i = 0
-        while i < len(entries):
-            entry = entries[i]
-            if entry:
-                result["dirty_paths"].append(entry[3:])
-                if "R" in entry[:2] or "C" in entry[:2]:
-                    i += 1
-                    if i < len(entries) and entries[i]:
-                        result["dirty_paths"].append(entries[i])
-            i += 1
     if result["dirty_paths"]:
         result["unpublished_work"].append("Relevant dirty files are recorded by path only; their contents are not transferred")
     result["limitations"].append("Local metadata only; remote/pushed state and finding freshness are not established")
+    result["limitations"].append("Raw file comparisons bypass all conversions; submodule working-tree changes are not inspected")
     return result
+
+
+@contextmanager
+def tracked_parent(root, name):
+    relative = Path(name)
+    if relative.is_absolute() or not relative.parts or ".." in relative.parts:
+        fail("Invalid tracked path")
+    fd = os.open(root, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW)
+    try:
+        for part in relative.parts[:-1]:
+            child = os.open(part, os.O_RDONLY | os.O_DIRECTORY | os.O_NOFOLLOW, dir_fd=fd)
+            os.close(fd)
+            fd = child
+        yield fd, relative.name
+    finally:
+        os.close(fd)
+
+
+def tracked_digest(root, name, mode, expected):
+    with tracked_parent(root, name) as (parent_fd, leaf):
+        info = os.stat(leaf, dir_fd=parent_fd, follow_symlinks=False)
+        digest = hashlib.sha256() if len(expected) == 64 else hashlib.sha1()
+        if mode == "120000":
+            if not stat.S_ISLNK(info.st_mode):
+                return None, True
+            raw = os.fsencode(os.readlink(leaf, dir_fd=parent_fd))
+            digest.update(f"blob {len(raw)}\0".encode())
+            digest.update(raw)
+            return digest.hexdigest(), False
+        if not stat.S_ISREG(info.st_mode):
+            return None, True
+        fd = os.open(leaf, os.O_RDONLY | os.O_NOFOLLOW | os.O_NONBLOCK, dir_fd=parent_fd)
+        with os.fdopen(fd, "rb") as stream:
+            opened = os.fstat(stream.fileno())
+            if not stat.S_ISREG(opened.st_mode):
+                return None, True
+            mode_changed = bool(opened.st_mode & stat.S_IXUSR) != (mode == "100755")
+            digest.update(f"blob {opened.st_size}\0".encode())
+            for chunk in iter(lambda: stream.read(65536), b""):
+                digest.update(chunk)
+        return digest.hexdigest(), mode_changed
+
+
+def raw_dirty_paths(root, paths, head):
+    """Compare index metadata and raw local bytes; never call Git status/diff on the working tree."""
+    index = git(root, "--literal-pathspecs", "ls-files", "--stage", "-z", "--", *paths)
+    untracked = git(root, "--literal-pathspecs", "ls-files", "--others", "--exclude-standard", "-z", "--", *paths)
+    staged = git(root, "--literal-pathspecs", "diff-index", "--cached", "--name-only", "--no-ext-diff", "--no-textconv", "-z", head, "--", *paths) if head else ""
+    if index is None or untracked is None or staged is None:
+        return [], ["Relevant index/working-tree metadata is unavailable"]
+    dirty = {x for x in (untracked + staged).split("\0") if x}
+    limits = []
+    for entry in index.split("\0"):
+        if not entry:
+            continue
+        metadata, name = entry.split("\t", 1)
+        mode, expected, stage = metadata.split()
+        if stage != "0" or not head:
+            dirty.add(name)
+        if mode == "160000":
+            continue
+        try:
+            actual, mode_changed = tracked_digest(root, name, mode, expected)
+            if actual != expected or mode_changed:
+                dirty.add(name)
+        except OSError:
+            dirty.add(name)
+            limits.append("A tracked file or parent is missing, unreadable, or a parent symlink; its current contents could not be verified")
+    return sorted(dirty), list(dict.fromkeys(limits))
 
 
 def get_record(store, handoff_id, revision_id=None):
@@ -478,6 +567,12 @@ def run(args):
         return render(record) if args.command == "render" else {"valid": True, "schema_version": 1}
     project = project_identity(args.project)
     store = Store(args.data_dir, project)
+    with store.lock(create=args.command in ("draft", "publish", "link-project")):
+        return run_in_store(args, store)
+
+
+def run_in_store(args, store):
+    project = store.project
     project = store.mapped_project()
     if args.command == "project":
         return project
@@ -488,7 +583,7 @@ def run(args):
         target_store = Store(args.data_dir, target)
         target = target_store.mapped_project()
         original = project_identity(args.project)
-        if original["id"] == target["id"]:
+        if project["id"] == target["id"]:
             return {"project_id": target["id"], "linked": True}
         existing = store.entries(("projects", project["id"], "handoffs"))
         if existing and project["id"] != target["id"]:

@@ -1,95 +1,70 @@
 # a-stack
 
-Akhil's small collection of reusable coding and AI workflow skills. Start with **Relay**, a local handoff workflow: save the context for one task, then pick it up in another local agent session.
+Akhil's lean collection of coding and AI workflow skills. Start with **Handoff**: save the context for one task, then resume it in another local agent session.
 
 | Skill | Use |
 | --- | --- |
 | `publish-handoff` | Select one topic, draft/save a local handoff, or publish an updated revision. |
-| `resume-handoff` | Retrieve/list handoffs, recheck relevant state, and explain the next step. Implement when the user asks. |
+| `resume-handoff` | Retrieve/list handoffs, check relevant current state, and explain the next step. Implement when the user asks. |
 
-Relay uses Python 3.11+ and only the standard library. Its tests and installed-helper checks run on macOS and Linux in CI; target-agent discovery still needs verification in your environment. Windows is not supported in v0.1. No pip install, TypeScript, npm, daemon, database server, MCP server, telemetry, or remote handoff storage is required. New skills can be added independently of Relay.
+**Node 22+ is the only runtime requirement.** Release artifacts bundle a small Node-API filesystem addon to retain directory-relative reads, atomic writes, and store locking on macOS/Linux. No Python, compiler, dependency installation, daemon, MCP server, or model service is needed to use an installed skill. Windows is unsupported in this version. Git is optional for local code metadata; no Git is required to install or use discussion-only handoffs.
 
-## Install on another laptop without Git
+## Install without cloning
 
-Download [a-stack-install.pyz](https://github.com/akhilvuputuri/a-stack/releases/download/v0.1.1/a-stack-install.pyz) from the v0.1.1 release, then run:
+Download the installer matching your laptop from the release: `a-stack-install-darwin-arm64.cjs` for an Apple Silicon Mac, or `a-stack-install-darwin-x64.cjs` for an Intel Mac. Linux artifacts use the corresponding architecture name. Check `node -p 'process.platform + "-" + process.arch'` if unsure. Release publication is pending review; prepared artifacts are not yet a public release.
 
 ```sh
-python3 a-stack-install.pyz --agent codex
+node a-stack-install-darwin-arm64.cjs --agent codex
 # Or:
-python3 a-stack-install.pyz --agent claude-code
+node a-stack-install-darwin-arm64.cjs --agent claude-code
 ```
 
-The file contains both skills and all their runtime files. It installs user-scoped copies and cleans up temporary staging. No clone, Git history, pip, npm, or build is needed. Python 3.11+ must already be available. The downloaded installer runs with networking disabled, so you can transfer the same file to a work laptop that cannot reach GitHub.
+The single downloaded file includes both skills, the helper, schema, reference, and matching compiled addon. It installs independent copies into `~/.agents/skills` for Codex or `~/.claude/skills` for Claude Code. A custom destination is supported with `--target /path/to/agent/skills`. Install just one with `--skill publish-handoff` or `--skill resume-handoff`. Restart/start a fresh agent session if discovery does not refresh. Host invocation/discovery and filesystem permissions still need to be verified in your chosen agent.
 
-Optional terminal download:
+The downloaded installer runs offline. Transfer it and its release checksum file to a work laptop through your approved mechanism; no source checkout or Git history travels with it. Updates are explicit: download a chosen new version and rerun with `--replace`. Recognized Python-era installations can be upgraded to Node without modifying stored handoffs. Unknown layouts/versions and unexpected file types are rejected to preserve local files. The installer never reads runtime records.
+
+## Optional npx installation
+
+Self-contained, platform-specific skill ZIPs are also built. Vercel's `skills` CLI supports direct archive URLs, agent selection, and copy mode. Once published and validated, a ZIP can be installed using:
 
 ```sh
-curl -fL --output a-stack-install.pyz https://github.com/akhilvuputuri/a-stack/releases/download/v0.1.1/a-stack-install.pyz
-python3 a-stack-install.pyz --agent codex
+npx skills add RELEASE_ZIP_URL --global --agent codex --copy
 ```
 
-The release also contains SHA256SUMS for local verification (`shasum -a 256 a-stack-install.pyz`), self-contained skill ZIPs for archive-based installers, and an optional source archive. For an explicit code update, download the selected release and rerun with `--replace`. Your handoff data is preserved. [Installation research and tradeoffs](docs/installation-research.md) explain the choice.
+This route is an external installer, not a second implementation of Handoff. It may download npm packages/use its own telemetry or update behavior during setup; use the downloaded Node installer for an offline installation. The direct ZIP path avoids relying on a Git repository clone. **End-to-end npx archive installation is not yet verified.** Do not install the same skill through both routes in the same scope. [Skills CLI documentation](https://github.com/vercel-labs/skills#installation-methods).
 
-## Custom folders and local source
+## Use
 
-Use the skill-discovery directory supported by your chosen agent. The installer requires an explicit target and can install either skill independently. Each installed skill includes its own Relay runtime, schema, and reference; it has no dependency on a sibling skill or on this source checkout.
+After installation, talk to your coding agent:
 
-```sh
-python3 /path/to/a-stack/tools/install.py --target /path/to/agent/skills
-# Or just one:
-python3 /path/to/a-stack/tools/install.py \
-  --target /path/to/agent/skills --skill publish-handoff
-```
-
-For example, current Codex documentation lists `~/.agents/skills` for user-scoped local skills. Other agents may use different locations or invocation syntax; choose the target they document. Agent compatibility must be verified separately. [Official Codex skill documentation](https://learn.chatgpt.com/docs/build-skills)
-
-```sh
-python3 /path/to/a-stack/tools/install.py --target "$HOME/.agents/skills"
-```
-
-The source skills link to shared runtime/reference files for development. Installation copies those files into self-contained skill directories. For a code-only update of a recognized v0.1 installation, repeat the installer with `--replace`. Unknown versions and unexpected file types are rejected rather than silently migrated or removed. The installer never opens your runtime handoff data.
-
-## Local data
-
-By default handoffs live in `~/.local/share/a-stack`, outside both this repo and application repos. Choose a private local filesystem location, especially at work:
-
-```sh
-export ASTACK_DATA_DIR=/local/private/a-stack
-```
-
-The helper creates user-only directories/files and rejects unsafe paths or public store permissions. Avoid cloud-synced folders; the tool cannot detect every sync product. Store project identity is based on canonical local roots/Git common directories. Worktrees share a project; separate clones do not unless explicitly linked.
-
-## Try it
-
-With the skills installed, use natural language:
-
-- “Publish a handoff for the retry bug only.”
+- “Publish a handoff for the login bug only.”
 - “Draft a handoff for the duplicate reply investigation.”
 - “Update handoff H with today's findings.”
 - “List handoffs for this project.”
 - “Resume handoff H.”
-- “Resume handoff H and implement the fix.”
+- “Resume H and implement the fix.”
 
-The publishing agent returns a stable handoff ID, unique revision ID, and local path. Another local agent with access to the same data root can retrieve the record without copying JSON manually. Host-specific slash aliases are optional; no universal slash command is assumed.
+The agent handles JSON and helper commands. Publishing returns a handoff ID, revision ID, and local path. Another local agent with access to the same store can resume by ID; code and patches are not transferred. “Publish” means save locally; issue URLs are inert metadata. Competing successors remain visible instead of choosing by timestamp.
 
-“Publish” means **save locally**. An issue URL is optional text metadata. A handoff records context and references; it does not copy code, reset a checkout, or prove the recorded findings are current. Competing updates remain visible and require a choice or explicit reconciliation.
+## Data and offline boundary
 
-The helper adds no network operations. A cloud-backed host agent may still send read context to its model provider under its own configuration. Fully offline model processing requires a suitable local agent/model. Containers need an explicit store mount; cloud-hosted agents without local filesystem access cannot use this release.
+Default store: `~/.local/share/a-stack`, outside source/application checkouts. Override with `ASTACK_DATA_DIR` or `--data-dir`. Choose a genuinely local private directory rather than a cloud-synced folder. Store directories/files have user-only permissions. Worktrees share identity; separate clones remain isolated unless explicitly linked. Existing schema-v1 records and project IDs remain compatible with the former Python helper. The legacy `.relay.lock` filename is retained solely for store compatibility; the tool is called Handoff.
 
-## Develop and package
+The helper makes no network calls. Local Git metadata reads deny transport protocols and lazy fetching. A cloud-backed agent can still send read context to its configured model provider; fully offline model processing requires a local agent/model. Containers require a store mount, and hosted agents without local filesystem access cannot use this store.
+
+## Develop
+
+Development requires Node 22+, a C compiler, and locally available Node headers. Compiled Node-API artifacts work across supported Node versions on the same platform/architecture. Building never downloads headers or dependencies. If the header location is unusual, set `ASTACK_NODE_HEADERS` to the directory containing `node_api.h`.
 
 ```sh
-cd /path/to/a-stack
-python3 -m unittest discover -s tests -v
-python3 tools/relay.py --help
-python3 tools/package.py --output /path/to/a-stack-source-0.1.1.tar.gz
-python3 tools/build_release.py --output-dir /path/to/release-artifacts
+npm run build:native
+npm test
+node tools/build-release.cjs --output-dir /path/to/artifacts
+node tools/install.cjs --target /path/to/test-agent/skills
 ```
 
-Packaging uses an explicit generic-source allowlist and never opens the handoff store. Transfer the package to a work machine through your permitted mechanism, extract it, and run the same local installer with networking disabled. Python must already be available; nothing is downloaded automatically.
+There are no npm dependencies or install scripts. The release builder emits a standalone installer, a self-contained skill ZIP, and SHA256 checksums for the build platform. Checksums detect mismatch/corruption; hashes from the same release host are not an independent publisher signature.
 
-The repository contains only synthetic test/evaluation content. Real handoffs must stay outside the repo, releases, examples, tests, and diagnostics. The authoritative format is [schema/handoff.schema.json](schema/handoff.schema.json). Command details, record fields, storage guarantees, and limitations are in [docs/handoff.md](docs/handoff.md). Actual checks and compatibility are in [docs/validation.md](docs/validation.md).
+[Record schema](schema/handoff.schema.json), [command/storage reference](docs/handoff.md), [validation evidence](docs/validation.md), [installation research](docs/installation-research.md), and [development/review workflow](docs/development.md).
 
-No GitHub publishing, remote sync, automatic updates, background transcript capture, autonomous dispatch, or code transfer is included in this initial release.
-
-Repository development follows [the independent review and Devin workflow](docs/development.md). Local handoff operations remain separate from GitHub development/release work.
+Devin and independent review concern development of this repo; they are not dependencies for using the installed skills. Runtime handoffs, real work context, credentials, and scratch review data must never enter source, releases, tests, or diagnostics.

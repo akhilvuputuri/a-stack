@@ -10,8 +10,8 @@ Focus on applicable failure cases:
 - Project identity, mapping chains/cycles, worktree sharing, clone isolation, stale prepared drafts, and concurrent mapping/publication. Successful records must remain reachable.
 - Immutable revisions, lineage validity, identical retries, differing collisions, interruption, partial success, and competing successors. Storage locks protect metadata only, never application files.
 - IDs, canonical paths, symlinks, non-regular files, permissions, and input size. Install/update/package must not traverse runtime records or destroy unexpected local files.
-- Git metadata reads must not execute repository-configured filters, fsmonitor, hooks, remote helpers, or arbitrary commands. Python socket tests alone cannot prove native subprocess isolation.
-- Each distributed skill contains its runtime/schema/reference. The one-file installer must work without Git, npm, pip, source checkout, or networking. Explicit code updates preserve runtime data.
+- Git metadata reads must not execute repository-configured filters, fsmonitor, hooks, remote helpers, or arbitrary commands. Node socket tests alone cannot prove native subprocess isolation.
+- Each distributed skill contains its runtime/schema/reference. The one-file installer must work with Node only, without Git, Python, a compiler, npm dependency installation, a source checkout, or networking. Explicit code updates preserve runtime data.
 - Verify the record contract, renderer, CLI, docs, supported environments, and claimed guarantees agree. Test boundaries that could falsify the implementation; avoid tests that merely repeat wording.
 
 Use synthetic scratch data outside source checkouts. Never read real work handoffs or expose credentials/private payloads in a review, artifact, or CI log. Report unavailable platform, native-network, or target-agent checks accurately. Devin findings supplement the separate independent reviewer; a green check is not a guarantee of no defects.

@@ -1,0 +1,27 @@
+{
+  "name": "@akhilvuputuri/a-stack",
+  "version": "0.1.2",
+  "description": "Local handoff skills for coding agents; Node-only runtime",
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "scripts": {
+    "build:native": "node tools/build-native.cjs",
+    "test": "node --test tests/*.test.cjs",
+    "build:release": "node tools/build-release.cjs --output-dir dist",
+    "install:skills": "node tools/install.cjs"
+  },
+  "files": [
+    "tools/*.cjs",
+    "native/posix.c",
+    "native/*/posix.node",
+    "schema",
+    "skills",
+    "docs",
+    "AGENTS.md",
+    "REVIEW.md",
+    "README.md",
+    "VERSION"
+  ]
+}

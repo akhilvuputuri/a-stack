@@ -27,3 +27,9 @@ Choose a fixed release version for predictable work installs. Publish SHA256SUMS
 Download and execution are separate steps, avoiding a shell pipe that executes a partly downloaded script. If the work laptop cannot reach GitHub, transfer the same installer file and checksums, then run entirely offline. Python 3.11+ and a compatible macOS/Linux filesystem remain prerequisites. This design is based on the user's confirmed macOS/Python environment; Windows support remains out of scope.
 
 A plugin marketplace or package registry could be added once a target agent/ecosystem is chosen. Adding one now would introduce account/registry/toolchain assumptions without simplifying the confirmed work-laptop setup. The release ZIP offers ecosystem compatibility while keeping the primary install standard-library-only.
+
+## Node-only decision — 6 October 2026
+
+The user selected a Node-only runtime and renamed Relay to Handoff. This supersedes the Python installer recommendation above while preserving its download-first and self-contained-folder approach. JavaScript is executed directly by Node 22+; there is no TypeScript compiler at runtime. Node's built-in filesystem API does not expose openat or flock, so a small precompiled Node-API addon supplies the reviewed descriptor-relative primitives. Official [Node-API documentation](https://nodejs.org/api/n-api.html) describes its cross-version ABI and distributing precompiled binaries; see [filesystem APIs](https://nodejs.org/api/fs.html) for built-in operations. Release artifacts are platform/architecture-specific, with no compiler needed on the user's laptop.
+
+Both direct Node installation and archive-based npx skills installation use the same skill/helper contents. Direct execution of the downloaded installer stays offline; using an external npm installer has that installer's network/telemetry boundary. Python artifacts are historical and no longer the supported path for the Node release.

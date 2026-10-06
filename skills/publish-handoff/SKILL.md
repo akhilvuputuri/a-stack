@@ -3,7 +3,7 @@ name: publish-handoff
 description: Save or draft a local continuation record for a selected task from this conversation, or publish a new revision with updated findings. Use for local agent handoffs; this workflow does not publish to GitHub or transfer code.
 ---
 
-Create a task-specific continuation record using only context available to this agent. “Publish” means durable local storage. Use the bundled `scripts/relay.py` with Python 3.11+; substitute the actual absolute skill directory in commands. If the runtime is missing, follow the a-stack repository's offline installer rather than downloading dependencies. Read [handoff reference](references/handoff.md) for command syntax and the record contract when constructing a record.
+Create a task-specific continuation record using only context available to this agent. “Publish” means durable local storage. Use the bundled `scripts/handoff.cjs` with Node 22+; substitute the actual absolute skill directory in commands. If the runtime is missing, follow the a-stack repository's offline installer rather than downloading dependencies. Read [handoff reference](references/handoff.md) for command syntax and the record contract when constructing a record.
 
 ## Select and extract
 

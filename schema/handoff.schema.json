@@ -1,6 +1,6 @@
 {
   "$schema": "https://json-schema.org/draft/2020-12/schema",
-  "title": "Relay handoff revision",
+  "title": "Handoff revision",
   "type": "object",
   "additionalProperties": false,
   "required": ["schema_version", "handoff_id", "revision_id", "created_at", "project", "issue_reference", "predecessor_revision_ids", "scope", "continuation", "findings", "decisions", "code_state", "verification", "dependencies", "provenance"],

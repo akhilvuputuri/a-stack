@@ -7,3 +7,6 @@ dist/
 .relay-data/
 handoffs/
 drafts/
+native/*/posix.node
+node_modules/
+*.tgz

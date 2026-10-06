@@ -9,6 +9,8 @@ Akhil's lean collection of coding and AI workflow skills. Start with **Handoff**
 
 **Node 22+ is the only runtime requirement.** Release artifacts bundle a small Node-API filesystem addon to retain directory-relative reads, atomic writes, and store locking on macOS/Linux. No Python, compiler, dependency installation, daemon, MCP server, or model service is needed to use an installed skill. Windows is unsupported in this version. Git is optional for local code metadata; no Git is required to install or use discussion-only handoffs.
 
+Use the matching platform/architecture artifact. macOS binaries target macOS 11+; Linux builds use glibc 2.35+ (Ubuntu 22.04 baseline). Alpine/musl builds are not supplied. CI verifies current macOS/Linux runners; minimum-OS loader execution is not independently verified.
+
 ## Install without cloning
 
 Download the installer matching your laptop from the release: `a-stack-install-darwin-arm64.cjs` for an Apple Silicon Mac, or `a-stack-install-darwin-x64.cjs` for an Intel Mac. Linux artifacts use the corresponding architecture name. Check `node -p 'process.platform + "-" + process.arch'` if unsure. Release publication is pending review; prepared artifacts are not yet a public release.
@@ -32,6 +34,8 @@ npx skills add RELEASE_ZIP_URL --global --agent codex --copy
 ```
 
 This route is an external installer, not a second implementation of Handoff. It may download npm packages/use its own telemetry or update behavior during setup; use the downloaded Node installer for an offline installation. The direct ZIP path avoids relying on a Git repository clone. **End-to-end npx archive installation is not yet verified.** Do not install the same skill through both routes in the same scope. [Skills CLI documentation](https://github.com/vercel-labs/skills#installation-methods).
+
+An isolated trial with the npm-published `skills` 1.5.18 treated a direct localhost ZIP URL as a well-known discovery endpoint and found no skills. Repository main documents archive support, but that trial did not establish it for the published version. The direct Node installer is the verified install path; do not assume a future archive command works until tested against the chosen installer release.
 
 ## Use
 

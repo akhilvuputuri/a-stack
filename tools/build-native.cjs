@@ -33,7 +33,7 @@ function build() {
   ];
   flags.push(
     ...(process.platform === "darwin"
-      ? ["-bundle", "-undefined", "dynamic_lookup"]
+      ? ["-mmacosx-version-min=11.0", "-bundle", "-undefined", "dynamic_lookup"]
       : ["-shared"]),
   );
   const result = spawnSync(

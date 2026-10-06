@@ -1,5 +1,19 @@
 # Validation status
 
+## Current Node-only candidate — 6 October 2026
+
+Handoff 0.1.2 now runs on Node 22+ with a bundled filesystem addon. The Python results below are retained historical evidence, not approval of the Node port. The current native build explicitly targets macOS 11+; Linux CI builds on Ubuntu 22.04 for a glibc 2.35 baseline. Older-OS loader execution and musl/Alpine support are not established.
+
+The Node port has 36 grouped tests passing locally on macOS arm64 / Node 22.15.0. [CI run 37457918337](https://github.com/akhilvuputuri/a-stack/actions/runs/37457918337) passed all six jobs at `cc242d6fa9528062ceef602ade39b332be46c9ac`: macOS arm64, macOS Intel, and Linux, each on Node 22 and 24. The build-floor/documentation follow-up requires refreshed current-head CI and review; passing older-head checks do not approve it.
+
+A separate GPT-6 Astra reviewer approved the native/installer/release scope of `cc242d6`, independently passing all 36 tests plus 1,000 native boundary/resource cycles with stable open-descriptor counts and an unchanged outside sentinel. It identified the implicit build-host macOS floor as a compatibility limitation; the follow-up sets `-mmacosx-version-min=11.0`, verified locally with Mach-O `LC_BUILD_VERSION minos 11.0`. Full implementation review remains pending on the final head.
+
+An independent skill evaluation used the installed Node publishing and receiving helpers on synthetic mixed-topic context. It saved only the duplicate-reply investigation, retained rejected approaches and uncertainty, excluded unrelated content, and resumed for orientation without code/status/record mutation. No Python or network operations were used. Freshness remained unverifiable for unavailable code/logs.
+
+An isolated `npx skills` installation attempt with npm version 1.5.18 did not support the direct localhost archive route described by repository main: it sought a well-known discovery endpoint and found no skills. The direct Node installer is tested; npx archive installation remains unverified and is not advertised as a working supported route. No registry package for a-stack was published.
+
+Devin enrollment and public release publication remain pending owner confirmation of the prepared repository-specific GitHub App access. No runtime usage depends on Devin. Native OS-level egress isolation and actual host automatic skill discovery remain unverified.
+
 Checked on 2 October 2026 (Asia/Singapore), using macOS 26.1. All data used for these checks is synthetic. No real work handoffs are in this repository or its bundle.
 
 ## Deterministic helper checks

@@ -1,4 +1,4 @@
-# Handoff handoff reference
+# Handoff reference
 
 Handoff 0.1 uses Node 22+ and a POSIX filesystem with descriptor-relative operations, no-follow opens, hard links, and directory fsync. macOS and Linux are the intended platforms; Windows is not supported in this version. No third-party npm packages, network operations, daemon, MCP server, or model service are used by the helper.
 
@@ -9,7 +9,7 @@ In a source checkout use `node /absolute/path/a-stack/tools/handoff.cjs`. In an 
 ```sh
 handoff --project /path/to/app --data-dir /local/private/a-stack project
 handoff --project /path/to/app list --query retry
-handoff --project /path/to/app inspect --path src/retry.py --path tests/test_retry.py
+handoff --project /path/to/app inspect --path src/retry.ts --path tests/retry.test.ts
 handoff --project /path/to/app template --title 'Retry investigation'
 handoff --project /path/to/app draft --input /private/payload.json
 handoff --project /path/to/app render --input /local/private/a-stack/projects/P/drafts/R.json
@@ -95,5 +95,7 @@ Installation and updates touch skill code only and never read runtime data. Gene
 Run `node /path/to/tools/handoff.cjs` in source or `node /path/to/SKILL/scripts/handoff.cjs` in an installed skill. Handoff uses Node's built-in libraries; a bundled Node-API addon supplies openat/mkdirat/linkat/unlinkat/readlinkat, directory iteration, and flock. These operations preserve the reviewed descriptor-relative guarantees that Node's standard filesystem API alone cannot provide. Releases contain the compiled addon for a specified OS/architecture. A mismatched/missing addon fails before store use; no fallback compiler or download is invoked.
 
 The record schema stays at v1 and project IDs/data layout are unchanged. Existing Python-produced records can be read and exact identical retries remain valid (JSON key ordering/whitespace need not match). The legacy `.relay.lock` filename intentionally remains for cross-version coordination; no tool is exposed as Relay. Upgrade the skill code only, using the Node installer with `--replace`; runtime records/drafts are preserved.
+
+macOS addon builds explicitly target macOS 11 or newer, while Linux release builds use Ubuntu 22.04 (glibc 2.35 baseline). Current CI does not execute on every older supported OS. Platform/architecture-specific release binaries are required; Linux musl/Alpine builds are not supplied. Source builds require a local compiler and Node headers; release installation never compiles code.
 
 Store parent directories outside the configured root are trusted filesystem configuration. Within the root, the addon retains open directory descriptors and rejects child symlinks. Local same-user modifications can still tamper with data; the store is not an authenticated/tamper-proof database. Raw comparisons are a moment-in-time check and do not prove semantic freshness.

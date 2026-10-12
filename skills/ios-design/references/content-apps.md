@@ -50,11 +50,12 @@ When articles render in `WKWebView`:
 ## Themes and color
 
 - Reading themes (paper, sepia, night) style the reading surface. Outside the reader, chrome follows the system light/dark setting; the HIG discourages app-specific appearance settings. Inside the reader, the chosen theme sets the screen's interface style by its luminance (paper and sepia light, night dark), so bars, sheets, and HTML agree. With "Match System" (the default), the theme follows the system.
-- Scope that style to the reader:
-  - **SwiftUI:** apply `.environment(\.colorScheme, themeScheme)` to the reader's view and `.toolbarColorScheme(themeScheme, for: .navigationBar, .bottomBar)` for its bars.
-  - **Sheets opened from the reader:** apply `.preferredColorScheme(themeScheme)` inside the sheet's content, where it affects only that sheet.
-  - **UIKit:** set `overrideUserInterfaceStyle` on the reader's own view controller.
-  - **Pitfall:** don't put `.preferredColorScheme` on a view pushed inside a `NavigationStack`, and don't set `overrideUserInterfaceStyle` on the window or root controller. Both restyle the whole window, library included, and can persist after going back.
+- Scope that style to the reader, and verify the result in a simulator; these are documented behaviours, not ones the skill has observed:
+  - **Most dependable:** present the reader as its own presentation (`.fullScreenCover`, a natural fit for immersive reading) and apply `.preferredColorScheme(themeScheme)` inside it. Apple documents that this modifier affects the nearest enclosing presentation, so bars, sheets, and HTML in the reader follow the theme while the library keeps the system style.
+  - **Pushed reader inside a `NavigationStack`:** `.environment(\.colorScheme, themeScheme)` styles the reader's content. Bars belong to the stack, though, and `.toolbarColorScheme(_:for:)` takes effect only while the bar background is visible. Over see-through glass, bars may keep the system style, which looks wrong when a night theme is read in Light Mode. Check both scroll-edge states. If controls mismatch, prefer the full-screen presentation rather than adding an opaque bar background.
+  - **Sheets opened from the reader:** apply `.preferredColorScheme(themeScheme)` inside the sheet's content, which scopes to that sheet.
+  - **UIKit:** set `overrideUserInterfaceStyle` on the reader's own view controller, or on the presented navigation controller when the reader is presented modally.
+  - **Pitfall:** don't put `.preferredColorScheme` on a view pushed inside the app's main `NavigationStack`, and don't set `overrideUserInterfaceStyle` on the window or root controller. Both restyle the whole window, library included, and can persist after going back.
 - Define colors once, as tokens: asset-catalog colors with Any, Dark, and High Contrast variants, or a small `ShapeStyle`/environment theme type. Avoid comparing a stored theme string in every view.
 - A paper/sepia theme is a set of tokens (page, elevated surface, primary ink, secondary ink, accent, separator), each verified for contrast: at least 4.5:1 for body text and secondary text that must be read, at least 3:1 for large text (18 pt and up, or 14 pt and up if bold) and essential icons. Secondary text on warm paper often fails; check it.
 - A themed `List` or `Form` paints its own background; use `.scrollContentBackground(.hidden)` with the theme's page color, and `.listRowBackground` for the surface token.

@@ -11,7 +11,11 @@
 - **Checks:**
   - `ApiProbe.swift` covers these APIs and typechecks against the iOS 26.2 simulator SDK.
   - `quick_validate.py` passes.
-- **Not verified:** the scoping behaviour comes from Apple's API documentation and was not observed in a simulator.
+- **Not verified:** the scoping behaviour comes from Apple's API documentation and was not observed in a simulator. The probe is compile-only.
+- **Devin Review of `c779ed3`:**
+  - **Bug:** `.toolbarColorScheme` applies only while the bar background is visible, so see-through glass bars could keep the system style.
+  - **Flag:** the probe can't show rendering.
+  - **Response:** the guidance now leads with a full-screen presentation plus `.preferredColorScheme`, where Apple documents scoping to the presentation. It qualifies the pushed-reader approach and requires a simulator check of both scroll-edge states. The probe is labelled compile-only.
 
 ## ios-design HIG pass — 13 October 2026
 

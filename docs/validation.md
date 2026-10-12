@@ -11,11 +11,18 @@
 - **Checks:**
   - `ApiProbe.swift` covers these APIs and typechecks against the iOS 26.2 simulator SDK.
   - `quick_validate.py` passes.
-- **Not verified:** the scoping behaviour comes from Apple's API documentation and was not observed in a simulator. The probe is compile-only.
+- **Simulator evidence:** the independent reviewer built a scratch probe app on the iPhone 17 Pro simulator (iOS 26.3.1, system in Light Mode, reader forced dark). It recorded interface styles, bar styles, and the web view's `prefers-color-scheme`, with screenshots. The guidance now reflects those observations.
+- **Not verified:** devices, iPad, a system Dark Mode setting, and scroll-edge transitions. The repository probe is compile-only.
 - **Devin Review of `c779ed3`:**
   - **Bug:** `.toolbarColorScheme` applies only while the bar background is visible, so see-through glass bars could keep the system style.
   - **Flag:** the probe can't show rendering.
   - **Response:** the guidance now leads with a full-screen presentation plus `.preferredColorScheme`, where Apple documents scoping to the presentation. It qualifies the pushed-reader approach and requires a simulator check of both scroll-edge states. The probe is labelled compile-only.
+- **Independent review of `5230d79`:** REQUEST CHANGES, based on simulator observation.
+  - Sheets opened from a full-screen reader keep the system style unless they set their own color scheme.
+  - A UIKit override on a pushed controller leaves the parent's bars in the system style.
+  - A pushed SwiftUI reader drew its large title dark-on-dark.
+  - Window-wide overrides reverted after going back; they didn't persist.
+  - All four are reflected in the follow-up commit.
 
 ## ios-design HIG pass — 13 October 2026
 

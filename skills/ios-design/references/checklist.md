@@ -6,7 +6,7 @@ Run the rows that apply to the change. Record each as observed, not run (with re
 | --- | --- |
 | Build | Project builds for the deployment target and for the latest SDK; newer APIs are availability-gated with a working fallback. |
 | Tests | Existing unit and UI tests pass; accessibility identifiers used by UI tests are unchanged. |
-| Appearance | Light, Dark, each custom theme, and System; switching themes while a sheet is open; a reading theme stays scoped to the reader, so going back restores the system style in the rest of the app. |
+| Appearance | Light, Dark, each custom theme, and System; switching themes while a sheet is open; a reading theme stays scoped to the reader (including its sheets and large title), so going back restores the system style in the rest of the app. |
 | Text size | Default, largest standard (xxxLarge), and largest accessibility size (AX5), plus Bold Text. No clipped or overlapping text; no more truncation at AX sizes than at xxxLarge; rows grow; inline items stack; toolbars still fit. |
 | Contrast | At default settings, in every theme: text below 18 pt (below 14 pt if bold) meets 4.5:1; larger text and essential icons meet 3:1. This follows WCAG AA, which is stricter than Apple's HIG table for small bold text. Then recheck with Increase Contrast on. |
 | Materials | Reduce Transparency on, alone and together with Increase Contrast and Dark Mode; custom glass and overlays stay legible. Liquid Glass clear and tinted appearance preferences. |

@@ -1,5 +1,18 @@
 # Validation status
 
+## ios-design reader theme scope — 13 October 2026
+
+- **Change:** follow-up to the HIG pass, from the reviewer's optional suggestion. `content-apps.md` now names scoped ways to apply a reading theme's interface style:
+  - SwiftUI `.environment(\.colorScheme, …)` with `.toolbarColorScheme(_:for:)`
+  - `.preferredColorScheme` only inside a sheet's content
+  - UIKit `overrideUserInterfaceStyle` on the reader's own view controller
+- **Pitfall:** it warns that a window-wide `.preferredColorScheme` or root `overrideUserInterfaceStyle` restyles the whole app.
+- **Checklist:** a new item requires the system style to return after leaving the reader.
+- **Checks:**
+  - `ApiProbe.swift` covers these APIs and typechecks against the iOS 26.2 simulator SDK.
+  - `quick_validate.py` passes.
+- **Not verified:** the scoping behaviour comes from Apple's API documentation and was not observed in a simulator.
+
 ## ios-design HIG pass — 13 October 2026
 
 The first version drew on Apple's Liquid Glass overview and secondary sources, not the Human Interface Guidelines themselves. This pass read the HIG directly:

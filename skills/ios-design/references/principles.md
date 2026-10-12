@@ -4,8 +4,9 @@ Each entry gives the idea, the test to apply, and what to take or leave. Prefer 
 
 ## Apple Human Interface Guidelines and Liquid Glass
 
-- **Hierarchy, harmony, consistency** (the iOS 26 framing). Content leads; navigation and controls form a distinct functional layer that floats above it. Shapes follow the hardware's concentric curves. Placement and icons stay predictable across apps and platforms.
-- **Clarity, deference, depth** (the earlier framing, still useful). Legible text, an interface that defers to content, and layering that explains relationships.
+- **Purpose, Agency, Responsibility, Familiarity, Flexibility, Simplicity, Craft, Delight**: the HIG's current [design principles](https://developer.apple.com/design/human-interface-guidelines/design-principles). [HIG foundations](hig-foundations.md) turns each into a review question.
+- **Hierarchy, harmony, consistency**: Apple's framing for Liquid Glass. Content leads; navigation and controls form a distinct functional layer that floats above it. Shapes follow the hardware's concentric curves. Placement and icons stay predictable across apps and platforms.
+- **Clarity, deference, depth**: the earlier HIG framing, still useful. Legible text, an interface that defers to content, and layering that explains relationships.
 - **Test:** Cover the content. Is the remaining chrome sparse and recognizably iOS? Cover the chrome. Does the content still read as the point of the screen?
 - **Take:** standard bars, sheets, menus, search placement, swipe actions, SF Symbols, semantic colors, title-style section headers.
 - **Leave:** glass on content, custom bar backgrounds that fight the scroll edge effect, mixing text and icons within a shared toolbar group.

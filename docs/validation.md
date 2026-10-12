@@ -1,5 +1,32 @@
 # Validation status
 
+## ios-design HIG pass — 13 October 2026
+
+The first version drew on Apple's Liquid Glass overview and secondary sources, not the Human Interface Guidelines themselves. This pass read the HIG directly:
+- **Source:** Apple serves the HIG as structured page data. All 173 pages were fetched into a scratch directory, outside the repository.
+- **Coverage:** the 95 pages relevant to iOS and iPadOS were read. Subsections specific to macOS, tvOS, visionOS and watchOS were dropped. The core pages were read in full; minor control pages were read through their rule statements.
+
+New references: `hig-foundations.md`, `hig-components.md`, `hig-writing.md`, and `hig-system.md`.
+- They paraphrase the guidance, with only short example quotations, and link each section to its HIG page.
+- Every linked page slug exists in the fetched set.
+- The Dynamic Type table was transcribed from the HIG's typography specifications.
+
+Corrections to earlier guidance:
+- **Chevrons:** the HIG prescribes disclosure indicators for drill-in rows, so they are no longer described as optional.
+- **Undo:** an Undo affordance should not auto-dismiss on a timer, because the HIG asks to minimize time-boxed UI.
+- **Popovers:** they are discouraged in compact width, so iPhone typography controls use a medium-detent sheet.
+- **Appearance:** app chrome should follow the system light/dark setting. The HIG discourages app-specific appearance settings; reading themes remain acceptable for the reading surface.
+- **Principles:** Apple's current eight principles replace the older framing as the primary HIG summary.
+
+Checks:
+- `ApiProbe.swift` now also covers the following, and typechecks against the iOS 26.2 simulator SDK:
+  - paging scroll behavior, presentation detents, drag indicator, compact adaptation
+  - `dynamicTypeSize.isAccessibilitySize`, `requestReview`, `undoManager`
+  - standard materials, `widgetAccentable`, `ContainerRelativeShape`, `SiriTipView`
+  - `confirmationDialog`, `UIBarButtonItem.Style.prominent`
+- `quick_validate.py` passes, internal reference links resolve, and `npm test` passes 36/36.
+- Not done: no behavioral re-evaluation of the revised text, and no simulator rendering checks.
+
 ## ios-design skill — 13 October 2026
 
 `skills/ios-design` is an instruction-only skill (SKILL.md plus four references); it has no helper, runtime, or store access, and it is not part of the Handoff release installer. Install it by copying the folder. Its runtime environment is whatever agent loads it; only the checks below were performed.

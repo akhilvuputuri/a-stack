@@ -59,3 +59,43 @@ struct Probe: View {
     .confirmationDialog("Delete?", isPresented: $flag) { Button("Delete", role: .destructive) {} }
   }
 }
+
+// APIs named in the HIG-derived references.
+import AppIntents
+import StoreKit
+import UIKit
+import WidgetKit
+
+struct ProbeIntent: AppIntent {
+  static let title: LocalizedStringResource = "Probe"
+  func perform() async throws -> some IntentResult { .result() }
+}
+
+struct HIGProbe: View {
+  @State var show = false
+  @Environment(\.dynamicTypeSize) var size
+  @Environment(\.undoManager) var undoManager
+  @Environment(\.requestReview) var requestReview
+  var body: some View {
+    ScrollView {
+      Text(size.isAccessibilitySize ? "Stacked" : "Inline")
+        .background(.thickMaterial)
+        .background(.ultraThinMaterial)
+        .widgetAccentable()
+      ContainerRelativeShape().fill(.secondary)
+      SiriTipView(intent: ProbeIntent(), isVisible: $show)
+    }
+    .scrollTargetBehavior(.paging)
+    .sheet(isPresented: $show) {
+      Text("Aa")
+        .presentationDetents([.medium, .large])
+        .presentationDragIndicator(.visible)
+        .presentationCompactAdaptation(.sheet)
+    }
+    .confirmationDialog("Delete?", isPresented: $show, titleVisibility: .visible) {
+      Button("Delete", role: .destructive) { undoManager?.registerUndo(withTarget: UIView()) { _ in } }
+    }
+  }
+}
+
+let prominentStyle = UIBarButtonItem.Style.prominent

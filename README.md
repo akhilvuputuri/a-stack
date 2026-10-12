@@ -6,7 +6,7 @@ Akhil's lean collection of coding and AI workflow skills. Start with **Handoff**
 | --- | --- |
 | `publish-handoff` | Select one topic, draft/save a local handoff, or publish an updated revision. |
 | `resume-handoff` | Retrieve/list handoffs, check relevant current state, and explain the next step. Implement when the user asks. |
-| `ios-design` | Audit or refine native iPhone/iPad interfaces: Liquid Glass, Dynamic Type, accessibility, theming, and reading/offline-first patterns. Instructions only; no runtime. |
+| `ios-design` | Audit or refine native iPhone/iPad interfaces using a source-linked digest of Apple's Human Interface Guidelines: Liquid Glass, Dynamic Type, accessibility, components, writing, app icons, and reading/offline-first patterns. Instructions only; no runtime. |
 
 The release installer below covers the two Handoff skills. `ios-design` has no helper or runtime; install it by copying `skills/ios-design` into your agent's skills directory (for example `~/.claude/skills/ios-design` or `~/.agents/skills/ios-design`).
 

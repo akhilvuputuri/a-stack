@@ -12,7 +12,7 @@ The release installer below covers the two Handoff skills. `ios-design` has no h
 
 ## Claude Code plugin marketplace
 
-This repository is a Claude Code plugin marketplace (`.claude-plugin/marketplace.json`) named `a-stack`. It lists only instruction-only skills: currently `ios-design`. Handoff stays on the release installer, because it needs the bundled native addon, which a git-sourced plugin cannot supply.
+This repository is a Claude Code plugin marketplace (`.claude-plugin/marketplace.json`) named `a-stack`. It lists only instruction-only skills: currently `ios-design`. Handoff isn't distributed as a plugin, because its native addon is built per platform and one marketplace entry can't choose between builds. It stays on the release installer.
 
 To install for yourself:
 
@@ -26,7 +26,7 @@ To make a repository depend on it, commit this to that repository's `.claude/set
 ```json
 {
   "extraKnownMarketplaces": {
-    "a-stack": { "source": { "source": "github", "repo": "akhilvuputuri/a-stack", "ref": "ios-design-v0.1.0" } }
+    "a-stack": { "source": { "source": "github", "repo": "akhilvuputuri/a-stack", "ref": "ios-design--v0.1.0" } }
   },
   "enabledPlugins": { "ios-design@a-stack": true }
 }
@@ -34,12 +34,17 @@ To make a repository depend on it, commit this to that repository's `.claude/set
 
 Claude Code registers the marketplace once a contributor trusts the folder. The skill is invoked as `/ios-design:ios-design` and also loads when a task matches it.
 
-For Codex and other agents, copy the same tagged folder into their skills directory:
+Claude Code installs a new copy only when the plugin's `version` changes. Every change to `skills/ios-design` therefore bumps `version` in `.claude-plugin/marketplace.json`, and the reviewed merge commit is tagged `ios-design--v<version>`, following Claude Code's `<plugin>--v<version>` convention. A project moves to a release by changing its `ref` to that tag. `tests/marketplace.test.cjs` checks that the README's pinned tag matches the entry's `version`.
+
+Codex has no equivalent of a project-level pin. Install the same tagged folder into its skills directory, replacing any older copy. Codex discovery of `~/.agents/skills` has not been verified for this skill.
 
 ```sh
-git clone --depth 1 --branch ios-design-v0.1.0 https://github.com/akhilvuputuri/a-stack /tmp/a-stack
-cp -R /tmp/a-stack/skills/ios-design ~/.agents/skills/
+tmp=$(mktemp -d)
+git clone --depth 1 --branch ios-design--v0.1.0 https://github.com/akhilvuputuri/a-stack "$tmp"
+mkdir -p ~/.agents/skills && rm -rf ~/.agents/skills/ios-design && cp -R "$tmp/skills/ios-design" ~/.agents/skills/
 ```
+
+For other agents, point them at `skills/ios-design/SKILL.md` from that tag.
 
 **Node 22+ is the only runtime requirement.** Release artifacts bundle a small Node-API filesystem addon to retain directory-relative reads, atomic writes, and store locking on macOS/Linux. No Python, compiler, dependency installation, daemon, MCP server, or model service is needed to use an installed skill. Windows is unsupported in this version. Git is optional for local code metadata; no Git is required to install or use discussion-only handoffs.
 

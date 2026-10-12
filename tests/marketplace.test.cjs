@@ -44,3 +44,13 @@ test("each plugin entry points at its skill folder with matching name and no run
     }
   }
 });
+
+test("README pins the tag that matches each plugin version", () => {
+  const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
+  for (const plugin of marketplace.plugins) {
+    const tag = plugin.name + "--v" + plugin.version;
+    const pinned = [...readme.matchAll(new RegExp(plugin.name + "--v[0-9]+\\.[0-9]+\\.[0-9]+", "g"))].map((m) => m[0]);
+    assert.ok(pinned.length > 0, "README must pin " + tag);
+    assert.deepEqual([...new Set(pinned)], [tag]);
+  }
+});

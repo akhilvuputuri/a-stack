@@ -41,7 +41,7 @@ Distilled from Apple's [Human Interface Guidelines](https://developer.apple.com/
 - Use semantic colors for their stated purpose: `systemBackground`/`secondarySystemBackground`/`tertiarySystemBackground` for plain layouts, the `systemGroupedBackground` set for grouped lists, and `label` through `quaternaryLabel`, `placeholderText`, `separator`, and `link` for foreground. Don't hard-code their values; they change between releases.
 - Dark Mode is not an inversion. In iOS, sheets and popovers switch from base to elevated backgrounds automatically; custom backgrounds lose that depth cue.
 - For custom foreground/background pairs, Apple suggests aiming for 7:1, especially for small text. 4.5:1 is the floor for body-size text; large text and essential icons follow the 3:1 rule above.
-- Avoid an app-specific light/dark appearance setting; people expect the system choice to apply. Reading or media apps may offer content themes (paper, sepia) for the reading surface, but chrome should follow the system appearance by default.
+- Avoid an app-specific light/dark appearance setting; people expect the system choice to apply. Reading or media apps may offer content themes (paper, sepia) for the reading surface; elsewhere chrome follows the system appearance. See [content apps](content-apps.md) for how a reader screen reconciles the two.
 - Soften bright white images in Dark Mode. Test in sunlight and dim rooms; reading apps can set `UIWhitePointAdaptivityStyle` to control True Tone adaptation.
 - On Liquid Glass, color is for emphasis only: tint the background of a primary action (as prominent buttons do), not several controls. Over colorful content keep bars monochrome; over monochrome content the brand accent works well.
 

@@ -43,13 +43,13 @@ When articles render in `WKWebView`:
 - Dynamic Type: `font: -apple-system-body` scales with the user's text size. It is a shorthand that resets `font-family` and `line-height`, so declare it first and override family and leading after it. If the app also offers its own size control, apply it as a multiplier on top of the system size rather than ignoring the accessibility setting.
 - Refinement: `hyphens: auto` (plus `-webkit-hyphens: auto` for older WebKit) with a correct `lang` attribute, `text-wrap: pretty` for paragraphs where supported, `hanging-punctuation: first`, and `font-variant-numeric: oldstyle-nums proportional-nums` in serif body text.
 - Images: `max-width: 100%; height: auto;` with a light rounded radius; captions in a smaller secondary style.
-- Color: inject theme tokens as CSS custom properties from the same source as native colors so native chrome and HTML match exactly.
+- Color: inject theme tokens as CSS custom properties from the same source as the native reading surface (page, ink, link), so native views drawn on the page and the HTML match exactly. System bars are glass over that page, not separately colored.
 - Direction: set `lang` and `dir="auto"` on article content so right-to-left articles align by their own language.
 - Accessibility: keep real heading elements so the VoiceOver rotor can jump between sections; give images alt text from the source where available.
 
 ## Themes and color
 
-- Reading themes (paper, sepia, night) style the reading surface. App chrome should follow the system light/dark setting by default; the HIG discourages app-specific appearance settings. If a theme also changes chrome, make "Match System" the default.
+- Reading themes (paper, sepia, night) style the reading surface. Outside the reader, chrome follows the system light/dark setting; the HIG discourages app-specific appearance settings. Inside the reader, the chosen theme sets the screen's interface style by its luminance (paper and sepia light, night dark), so bars, sheets, and HTML agree. With "Match System" (the default), the theme follows the system.
 - Define colors once, as tokens: asset-catalog colors with Any, Dark, and High Contrast variants, or a small `ShapeStyle`/environment theme type. Avoid comparing a stored theme string in every view.
 - A paper/sepia theme is a set of tokens (page, elevated surface, primary ink, secondary ink, accent, separator), each verified for contrast: at least 4.5:1 for body text and secondary text that must be read, at least 3:1 for large text (18 pt and up, or 14 pt and up if bold) and essential icons. Secondary text on warm paper often fails; check it.
 - A themed `List` or `Form` paints its own background; use `.scrollContentBackground(.hidden)` with the theme's page color, and `.listRowBackground` for the surface token.

@@ -104,13 +104,14 @@ let prominentStyle = UIBarButtonItem.Style.prominent
 // exist, not how bars or sheets render; rendering must be checked in a simulator.
 struct ThemeScopeProbe: View {
   let scheme: ColorScheme = .light
-  @State var show = false
+  @State var showSheet = false
+  @State var showReader = false
   var body: some View {
     Text("Article")
       .environment(\.colorScheme, scheme)
       .toolbarColorScheme(scheme, for: .navigationBar, .bottomBar)
-      .sheet(isPresented: $show) { Text("Aa").preferredColorScheme(scheme) }
-      .fullScreenCover(isPresented: $show) {
+      .sheet(isPresented: $showSheet) { Text("Aa").preferredColorScheme(scheme) }
+      .fullScreenCover(isPresented: $showReader) {
         NavigationStack { Text("Reader") }.preferredColorScheme(scheme)
       }
   }

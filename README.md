@@ -8,7 +8,38 @@ Akhil's lean collection of coding and AI workflow skills. Start with **Handoff**
 | `resume-handoff` | Retrieve/list handoffs, check relevant current state, and explain the next step. Implement when the user asks. |
 | `ios-design` | Audit or refine native iPhone/iPad interfaces using a source-linked digest of Apple's Human Interface Guidelines: Liquid Glass, Dynamic Type, accessibility, components, writing, app icons, and reading/offline-first patterns. Instructions only; no runtime. |
 
-The release installer below covers the two Handoff skills. `ios-design` has no helper or runtime; install it by copying `skills/ios-design` into your agent's skills directory (for example `~/.claude/skills/ios-design` or `~/.agents/skills/ios-design`).
+The release installer below covers the two Handoff skills. `ios-design` has no helper or runtime, and installs as a Claude Code plugin or by copying the folder.
+
+## Claude Code plugin marketplace
+
+This repository is a Claude Code plugin marketplace (`.claude-plugin/marketplace.json`) named `a-stack`. It lists only instruction-only skills: currently `ios-design`. Handoff stays on the release installer, because it needs the bundled native addon, which a git-sourced plugin cannot supply.
+
+To install for yourself:
+
+```sh
+claude plugin marketplace add akhilvuputuri/a-stack
+claude plugin install ios-design@a-stack
+```
+
+To make a repository depend on it, commit this to that repository's `.claude/settings.json`, pinned to a release tag:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "a-stack": { "source": { "source": "github", "repo": "akhilvuputuri/a-stack", "ref": "ios-design-v0.1.0" } }
+  },
+  "enabledPlugins": { "ios-design@a-stack": true }
+}
+```
+
+Claude Code registers the marketplace once a contributor trusts the folder. The skill is invoked as `/ios-design:ios-design` and also loads when a task matches it.
+
+For Codex and other agents, copy the same tagged folder into their skills directory:
+
+```sh
+git clone --depth 1 --branch ios-design-v0.1.0 https://github.com/akhilvuputuri/a-stack /tmp/a-stack
+cp -R /tmp/a-stack/skills/ios-design ~/.agents/skills/
+```
 
 **Node 22+ is the only runtime requirement.** Release artifacts bundle a small Node-API filesystem addon to retain directory-relative reads, atomic writes, and store locking on macOS/Linux. No Python, compiler, dependency installation, daemon, MCP server, or model service is needed to use an installed skill. Windows is unsupported in this version. Git is optional for local code metadata; no Git is required to install or use discussion-only handoffs.
 

@@ -64,7 +64,7 @@ Each entry gives the idea, the test to apply, and what to take or leave. Prefer 
 
 - Disability is a mismatch between a person and a design; designs that fix it often help everyone (larger text outdoors, captions on a train).
 - **Test:** Use the largest accessibility text size, VoiceOver, Increase Contrast, Reduce Motion, and Reduce Transparency. Is every task still possible and clear?
-- **Take:** semantic structure, combined accessibility elements for rows, custom actions mirroring swipe actions, layouts that reflow at large sizes.
+- **Take:** semantic structure, combined accessibility elements for rows, swipe actions verified in the VoiceOver Actions rotor (custom actions only for any that are missing), layouts that reflow at large sizes.
 
 ## Leave out by default
 

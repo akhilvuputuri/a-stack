@@ -81,7 +81,6 @@ struct EpisodeLibrary: View {
       }
       .task {
         syncing = true
-        // Local episodes are hidden until the network request completes.
         episodes = []
         try? await Task.sleep(for: .seconds(2))
         syncing = false

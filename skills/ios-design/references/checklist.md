@@ -8,7 +8,7 @@ Run the rows that apply to the change. Record each as observed, not run (with re
 | Tests | Existing unit and UI tests pass; accessibility identifiers used by UI tests are unchanged. |
 | Appearance | Light, Dark, each custom theme, and System; switching themes while a sheet is open. |
 | Text size | Default, largest standard (xxxLarge), and largest accessibility size (AX5). No clipped or overlapping text; rows grow; toolbars still fit. |
-| Contrast | At default settings, in every theme: body and essential secondary text meet 4.5:1, large text and essential icons 3:1. Then recheck with Increase Contrast on. |
+| Contrast | At default settings, in every theme: text up to 17 pt meets 4.5:1; text at 18 pt and up, bold text, and essential icons meet 3:1. Then recheck with Increase Contrast on. |
 | Materials | Reduce Transparency on; custom glass and overlays stay legible. Liquid Glass clear and tinted appearance preferences. |
 | Motion | Reduce Motion on; transitions fall back to fades; nothing essential relies on animation. |
 | VoiceOver | Logical reading order; rows read as one element with a useful summary; icon buttons labeled; swipe actions present in the Actions rotor (no duplicates); state changes announced when relevant. |
@@ -17,4 +17,4 @@ Run the rows that apply to the change. Record each as observed, not run (with re
 | Layout | Smallest supported iPhone, largest iPhone, landscape where supported, and iPad if the app runs there. Content clears bottom search and toolbars. |
 | Feedback | Haptics fire once at commitment; no haptic on scroll or passive updates. |
 
-Simulator settings: Settings > Accessibility > Display & Text Size (Bold Text, Larger Text, Increase Contrast, Reduce Transparency), Motion > Reduce Motion. Xcode's Environment Overrides and Accessibility Inspector cover most of these quickly. SwiftUI previews can pin `\.dynamicTypeSize`, `\.colorScheme`, and `\.legibilityWeight` for fast iteration, but confirm in the simulator.
+Simulator settings: Settings > Accessibility > Display & Text Size (Bold Text, Larger Text, Increase Contrast, Reduce Transparency), Motion > Reduce Motion; Display & Brightness > Liquid Glass for Clear or Tinted (iOS 26.1 and later). Xcode's Environment Overrides and Accessibility Inspector cover most of these quickly. SwiftUI previews can pin `\.dynamicTypeSize`, `\.colorScheme`, and `\.legibilityWeight` for fast iteration, but confirm in the simulator.

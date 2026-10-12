@@ -8,7 +8,7 @@ Run the rows that apply to the change. Record each as observed, not run (with re
 | Tests | Existing unit and UI tests pass; accessibility identifiers used by UI tests are unchanged. |
 | Appearance | Light, Dark, each custom theme, and System; switching themes while a sheet is open. |
 | Text size | Default, largest standard (xxxLarge), and largest accessibility size (AX5). No clipped or overlapping text; rows grow; toolbars still fit. |
-| Contrast | At default settings, in every theme: text up to 17 pt meets 4.5:1; text at 18 pt and up, bold text, and essential icons meet 3:1. Then recheck with Increase Contrast on. |
+| Contrast | At default settings, in every theme: text below 18 pt (below 14 pt if bold) meets 4.5:1; larger text and essential icons meet 3:1. This follows WCAG AA, which is stricter than Apple's HIG table for small bold text. Then recheck with Increase Contrast on. |
 | Materials | Reduce Transparency on; custom glass and overlays stay legible. Liquid Glass clear and tinted appearance preferences. |
 | Motion | Reduce Motion on; transitions fall back to fades; nothing essential relies on animation. |
 | VoiceOver | Logical reading order; rows read as one element with a useful summary; icon buttons labeled; swipe actions present in the Actions rotor (no duplicates); state changes announced when relevant. |

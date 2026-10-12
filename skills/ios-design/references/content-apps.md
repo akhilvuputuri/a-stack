@@ -17,7 +17,7 @@ For apps whose value is the content: readers, read-later libraries, news, docume
 
 ## Triage gestures and menus
 
-- Give the most frequent safe action (archive, mark read) the full swipe. One common layout puts it on the leading edge and keeps destructive actions on the trailing edge without full swipe; Mail instead puts Archive on the trailing full swipe. Choose one and keep it consistent, but never let a full swipe destroy data without Undo.
+- Give the most frequent safe action (archive, mark read) the full swipe. One common layout puts it on the leading edge and keeps destructive actions on the trailing edge without full swipe; Mail instead puts Archive on the trailing full swipe. Choose one and keep it consistent, but never let a full swipe destroy data without Undo or confirmation.
 - Destructive actions should be reversible (Undo) or confirmed. Prefer Undo when the operation can actually be reversed; a full-swipe delete with neither is a P0.
 - Give every row a `.contextMenu` with the same top actions as its swipe actions, and a preview where helpful.
 - Confirm in VoiceOver that swipe actions appear in the Actions rotor. Add `.accessibilityAction(named:)` only for actions that are missing, to avoid duplicates.
@@ -47,7 +47,7 @@ When articles render in `WKWebView`:
 ## Themes and color
 
 - Define colors once, as tokens: asset-catalog colors with Any, Dark, and High Contrast variants, or a small `ShapeStyle`/environment theme type. Avoid comparing a stored theme string in every view.
-- A paper/sepia theme is a set of tokens (page, elevated surface, primary ink, secondary ink, accent, separator), each verified for contrast: at least 4.5:1 for body text and secondary text that must be read, at least 3:1 for large text (18 pt and up, or bold) and essential icons. Secondary text on warm paper often fails; check it.
+- A paper/sepia theme is a set of tokens (page, elevated surface, primary ink, secondary ink, accent, separator), each verified for contrast: at least 4.5:1 for body text and secondary text that must be read, at least 3:1 for large text (18 pt and up, or 14 pt and up if bold) and essential icons. Secondary text on warm paper often fails; check it.
 - A themed `List` or `Form` paints its own background; use `.scrollContentBackground(.hidden)` with the theme's page color, and `.listRowBackground` for the surface token.
 - Keep surfaces on one page color when possible. Two nearly identical background tones side by side (header strip versus list) look like a seam.
 - Status colors: use system green, orange, and red sparingly; on a warm theme, consider desaturated variants that still pass contrast. Do not rely on color alone; pair with a symbol or text for VoiceOver and color-blind users.

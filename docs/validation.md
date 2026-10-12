@@ -1,5 +1,15 @@
 # Validation status
 
+## ios-design skill — 13 October 2026
+
+`skills/ios-design` is an instruction-only skill (SKILL.md plus four references); it has no helper, runtime, or store access, and it is not part of the Handoff release installer. Install it by copying the folder. Its runtime environment is whatever agent loads it; only the checks below were performed.
+
+- Frontmatter/naming: the skill-creator `quick_validate.py` passes for `ios-design`, `publish-handoff`, and `resume-handoff` (Python 3.13 with a pre-installed PyYAML).
+- API names: `evals/ios-design/ApiProbe.swift` uses every SwiftUI API the references name and typechecks against the iOS 26.2 simulator SDK (Xcode on macOS 26.1). The probe caught an error copied from Apple's overview: `ToolbarContent.hidden(_:)` is unavailable on iOS, so the reference now recommends conditional toolbar content. Behavioral claims about iOS 26 rendering (row padding, scroll edge effects) come from Apple's "Adopting Liquid Glass" overview and were not observed in a simulator.
+- Fixture: `evals/ios-design/EpisodeLibrary.swift` is synthetic, typechecks at an iOS 26 target, and fails at its stated iOS 17 target only on the intentionally ungated `glassEffect`.
+- Behavioral evaluation: a separate Claude Opus 5.5 subagent loaded the skill and ran the `full-audit`, `narrow-change`, and `glass-everywhere` cases in isolated scratch Git workspaces. All include/exclude criteria were met. The audit left its workspace unchanged, the narrow change was a one-line title edit, and the glass request produced an explanation with a native alternative and no edits. No simulator, VoiceOver, or screenshot checks were run. The evaluator's critique led to these changes: an explicit rule for requests that conflict with the principles, a narrower P0 definition with grouping, a shorter finding format, side-effect disclosure for narrow edits, a neutral (non-serif) text-style example, "verify before mirroring" wording for VoiceOver swipe actions, contrast required at default settings, a `scrollContentBackground` note for themed lists, and a typecheck/preview fallback when no runnable project exists. The `sepia-theme` and `screenshot-only` cases were not run.
+- `npm run build:native` and `npm test` (36/36) pass locally on macOS arm64; no helper code changed.
+
 ## Current Node-only candidate — 6 October 2026
 
 Handoff 0.1.2 now runs on Node 22+ with a bundled filesystem addon. The Python results below are retained historical evidence, not approval of the Node port. The current native build explicitly targets macOS 11+; Linux CI builds on Ubuntu 22.04 for a glibc 2.35 baseline. Older-OS loader execution and musl/Alpine support are not established.

@@ -1,0 +1,53 @@
+{
+  "description": "Behavioral fixtures for agent runs of the ios-design skill; not deterministic text-matching tests. Judge whether material findings are identified with locations and concrete fixes, whether requested scope is respected, and whether claims of verification match what the agent could actually observe. The fixture is synthetic and intentionally flawed.",
+  "fixture": "EpisodeLibrary.swift",
+  "cases": [
+    {
+      "name": "full-audit",
+      "request": "Review EpisodeLibrary.swift and tell me how to make it feel like a great native iOS 26 app. Don't change code yet.",
+      "include": [
+        "glassEffect on list rows is on the content layer; remove it",
+        "custom navigation bar background fights Liquid Glass and the scroll edge effect",
+        "fixed font sizes do not scale with Dynamic Type; use text styles",
+        "full-swipe destructive delete with no Undo or confirmation is data-losing (P0)",
+        "local episodes are cleared while syncing; local content must show immediately",
+        "icon-only buttons and the ellipsis tap gesture lack accessibility labels and adequate targets; prefer a Menu or context menu",
+        "redundant row status (checkmark and green icon); encode the normal state as absence",
+        "yellow failure strip and episode count compete with content; move failures to a quieter, actionable place",
+        "glassEffect requires iOS 26 while the deployment target is iOS 17; gate with availability or remove",
+        "findings are prioritized and the audit states that it was not run in a simulator"
+      ],
+      "exclude": ["code edits", "claims of simulator or VoiceOver verification", "invented user research or analytics"],
+      "effect": "Prioritized written audit only; repository unchanged"
+    },
+    {
+      "name": "narrow-change",
+      "request": "Only make the episode title support Dynamic Type. Nothing else.",
+      "include": ["title uses a scaling text style (for example .title3 with weight)", "title can wrap instead of lineLimit(1) at large sizes, or the agent asks/explains"],
+      "exclude": ["other visual redesign", "removing glass, colors, or swipe actions", "changed accessibility identifiers"],
+      "effect": "Minimal diff limited to the title text; other issues may be mentioned but not changed"
+    },
+    {
+      "name": "glass-everywhere",
+      "request": "Make every row and the header strip Liquid Glass so it looks modern.",
+      "include": ["explains that glass belongs to the control layer, not content", "offers a native alternative such as system bars, glass toolbar buttons, or a glass control"],
+      "exclude": ["silently applying glass to rows or headers", "refusing without an alternative"],
+      "effect": "Pushback with an alternative; no glass applied to content unless the user insists after the explanation"
+    },
+    {
+      "name": "sepia-theme",
+      "request": "Add a proper sepia reading theme to this screen.",
+      "include": ["tokens defined once (asset catalog or theme type) instead of per-view string checks", "contrast verification for primary and secondary text", "system bars left as glass with the page color showing through", "status colors not relying on color alone"],
+      "exclude": ["custom toolbarBackground colors", "hard-coded colors repeated per view"],
+      "effect": "A centralized theme with verification notes, or a plan if code changes were not requested"
+    },
+    {
+      "name": "screenshot-only",
+      "request": "Here's a screenshot of the library in sepia. What's wrong?",
+      "setup": "Provide a screenshot description only, with no source code access.",
+      "include": ["findings labeled as observed from the screenshot", "states not visible (dark mode, large text, VoiceOver) listed as unverified"],
+      "exclude": ["claims about code structure that were not visible"],
+      "effect": "Observation-scoped critique"
+    }
+  ]
+}

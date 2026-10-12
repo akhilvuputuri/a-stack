@@ -6,6 +6,9 @@ Akhil's lean collection of coding and AI workflow skills. Start with **Handoff**
 | --- | --- |
 | `publish-handoff` | Select one topic, draft/save a local handoff, or publish an updated revision. |
 | `resume-handoff` | Retrieve/list handoffs, check relevant current state, and explain the next step. Implement when the user asks. |
+| `ios-design` | Audit or refine native iPhone/iPad interfaces: Liquid Glass, Dynamic Type, accessibility, theming, and reading/offline-first patterns. Instructions only; no runtime. |
+
+The release installer below covers the two Handoff skills. `ios-design` has no helper or runtime; install it by copying `skills/ios-design` into your agent's skills directory (for example `~/.claude/skills/ios-design` or `~/.agents/skills/ios-design`).
 
 **Node 22+ is the only runtime requirement.** Release artifacts bundle a small Node-API filesystem addon to retain directory-relative reads, atomic writes, and store locking on macOS/Linux. No Python, compiler, dependency installation, daemon, MCP server, or model service is needed to use an installed skill. Windows is unsupported in this version. Git is optional for local code metadata; no Git is required to install or use discussion-only handoffs.
 
@@ -69,6 +72,6 @@ node tools/install.cjs --target /path/to/test-agent/skills
 
 There are no npm dependencies or install scripts. The release builder emits a standalone installer, a self-contained skill ZIP, and SHA256 checksums for the build platform. Checksums detect mismatch/corruption; hashes from the same release host are not an independent publisher signature.
 
-[Record schema](schema/handoff.schema.json), [command/storage reference](docs/handoff.md), [validation evidence](docs/validation.md), [installation research](docs/installation-research.md), and [development/review workflow](docs/development.md).
+[Record schema](schema/handoff.schema.json), [command/storage reference](docs/handoff.md), [validation evidence](docs/validation.md), [installation research](docs/installation-research.md), and [development/review workflow](docs/development.md). `ios-design` evaluation cases and an SDK API probe live in [evals/ios-design](evals/ios-design).
 
 Devin and independent review concern development of this repo; they are not dependencies for using the installed skills. Runtime handoffs, real work context, credentials, and scratch review data must never enter source, releases, tests, or diagnostics.

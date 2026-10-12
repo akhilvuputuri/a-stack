@@ -1,11 +1,12 @@
 # Liquid Glass and iOS 26 conventions
 
-Summarized from Apple's "Adopting Liquid Glass" overview and the Human Interface Guidelines as of the iOS 26 SDK. Confirm every API against the project's SDK before relying on it, and gate with `#available(iOS 26, *)` when the deployment target is lower.
+Summarized from Apple's "Adopting Liquid Glass" overview and the Human Interface Guidelines (Materials, Color, Toolbars, Scroll views) as of the iOS 26 SDK. Component rules beyond glass live in [HIG components](hig-components.md). Confirm every API against the project's SDK before relying on it, and gate with `#available(iOS 26, *)` when the deployment target is lower.
 
 ## Layers
 
 - Liquid Glass is the functional layer: bars, tab bars, toolbars, sidebars, sheets, popovers, menus, and a few important custom controls. Content sits beneath it.
-- Never apply glass to list rows, cards, article bodies, or images. Glass on glass (stacked glass elements) reduces legibility.
+- Never apply glass to list rows, cards, article bodies, or images. Glass on glass (stacked glass elements) reduces legibility. The content layer uses standard materials (`.ultraThinMaterial` through `.thickMaterial`) when it needs separation. Sliders and toggles in content may show glass only while being used.
+- Regular glass suits text-heavy elements (alerts, sidebars, popovers). Clear glass is only for controls over rich media; add a dark dimming layer of about 35% when that media is bright.
 - Standard components adopt the material automatically when built with the current SDK. Start by rebuilding and looking before writing custom code.
 
 ## Bars and backgrounds
@@ -19,7 +20,9 @@ Summarized from Apple's "Adopting Liquid Glass" overview and the Human Interface
 - Group related items that share a background; separate unrelated groups with `ToolbarSpacer(.fixed)` (or a flexible spacer). Do not mix text and icons inside one shared group.
 - Prefer standard SF Symbols for common actions, and always give icon-only items an accessibility label.
 - Remove a whole item (`if condition { ToolbarItem { … } }` inside the toolbar builder) rather than hiding its content, which leaves an empty glass capsule. `ToolbarContent.hidden(_:)` is unavailable on iOS in the iOS 26.2 SDK.
-- Primary confirm actions in sheets use `.confirmationAction` placement; they render as prominent glass.
+- Give a toolbar at most one primary action (Done, Submit), styled prominent, on the trailing side: `.confirmationAction` placement in sheets, `UIBarButtonItem.Style.prominent` in UIKit, or `.buttonStyle(.glassProminent)` for a custom button. Confirm the rendered style in the simulator.
+- Use symbols without borders (`ellipsis`, not `ellipsis.circle`); the glass capsule already provides the container. Keep the standard Back and Close buttons.
+- Aim for at most three toolbar groups.
 - Bottom toolbars (`.bottomBar`) suit reading and editing screens where actions belong near the thumb.
 
 ## Search

@@ -23,8 +23,8 @@ Distilled from Apple's [Human Interface Guidelines](https://developer.apple.com/
 
 [Accessibility](https://developer.apple.com/design/human-interface-guidelines/accessibility), [VoiceOver](https://developer.apple.com/design/human-interface-guidelines/voiceover):
 
-- Text should enlarge to at least 200 percent. Custom type on iOS defaults to 17 pt with an 11 pt minimum; go larger for thin weights.
-- Contrast: Apple's table (used by Accessibility Inspector) asks 4.5:1 up to 17 pt, 3:1 at 18 pt and above, and 3:1 for bold text at any size. This skill applies WCAG AA's stricter bold rule (3:1 only from 14 pt bold). If defaults fall short, the Increase Contrast variant must meet them. Check light and dark.
+- Text should enlarge to at least 200 percent. iOS text, system or custom font, defaults to 17 pt with an 11 pt minimum; go larger for thin weights.
+- Contrast: Apple's table (used by Accessibility Inspector) asks 4.5:1 up to 17 pt, 3:1 at 18 pt and above, and 3:1 for bold text at any size. This skill is stricter than Apple in two ways. It applies WCAG AA's bold rule (3:1 only from 14 pt bold), and it requires the thresholds at default settings in every theme. Apple accepts an Increase Contrast variant as a fallback; here that variant is an extra check. Check light and dark.
 - Controls: 44×44 pt default, 28×28 pt absolute minimum. Leave about 12 pt around bezeled controls and about 24 pt around borderless ones.
 - Never rely on color alone. Offer an onscreen alternative to every gesture (a swipe-to-dismiss also gets a button).
 - Avoid UI that disappears on a timer; prefer explicit dismissal so slower readers and assistive-technology users are not rushed.
@@ -40,7 +40,7 @@ Distilled from Apple's [Human Interface Guidelines](https://developer.apple.com/
 - Every custom color needs light, dark, and increased-contrast variants (asset catalog color sets). Provide light and dark even for single-appearance apps, because Liquid Glass adapts to them.
 - Use semantic colors for their stated purpose: `systemBackground`/`secondarySystemBackground`/`tertiarySystemBackground` for plain layouts, the `systemGroupedBackground` set for grouped lists, and `label` through `quaternaryLabel`, `placeholderText`, `separator`, and `link` for foreground. Don't hard-code their values; they change between releases.
 - Dark Mode is not an inversion. In iOS, sheets and popovers switch from base to elevated backgrounds automatically; custom backgrounds lose that depth cue.
-- For custom foreground/background pairs, Apple suggests aiming for 7:1, especially for small text; 4.5:1 is the floor.
+- For custom foreground/background pairs, Apple suggests aiming for 7:1, especially for small text. 4.5:1 is the floor for body-size text; large text and essential icons follow the 3:1 rule above.
 - Avoid an app-specific light/dark appearance setting; people expect the system choice to apply. Reading or media apps may offer content themes (paper, sepia) for the reading surface, but chrome should follow the system appearance by default.
 - Soften bright white images in Dark Mode. Test in sunlight and dim rooms; reading apps can set `UIWhitePointAdaptivityStyle` to control True Tone adaptation.
 - On Liquid Glass, color is for emphasis only: tint the background of a primary action (as prominent buttons do), not several controls. Over colorful content keep bars monochrome; over monochrome content the brand accent works well.
@@ -55,7 +55,7 @@ Distilled from Apple's [Human Interface Guidelines](https://developer.apple.com/
 - When text grows, prioritize content: titles of tabs and chrome need not scale as much as the article.
 - At large sizes: avoid truncation (show as much at AX sizes as at the largest standard size), stack inline items (glyphs, timestamps) below text, reduce columns, keep primary elements at the top. Use `dynamicTypeSize.isAccessibilitySize` to switch layouts.
 
-iOS text styles at the default (Large) size, as size/leading in points:
+iOS text styles as size/leading in points, at the default (Large), largest standard (xxxLarge), and largest accessibility (AX5) settings:
 
 | Style | Default | xxxLarge | AX5 |
 | --- | --- | --- | --- |

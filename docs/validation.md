@@ -26,6 +26,11 @@ Checks:
   - `confirmationDialog`, `UIBarButtonItem.Style.prominent`
 - `quick_validate.py` passes, internal reference links resolve, and `npm test` passes 36/36.
 - Not done: no behavioral re-evaluation of the revised text, and no simulator rendering checks.
+- Independent review of `374bb19` (separate Claude Opus 5.5 subagent): **REQUEST CHANGES**.
+  - **What it checked:** about 70 claims against the fetched HIG text, all 33 cells of the Dynamic Type table, an 8-word overlap scan for copying, the probe, links, and tests.
+  - **Blocking finding:** `hig-foundations.md` reintroduced Increase Contrast as a fallback, contradicting the default-settings contrast rule.
+  - **Low findings:** paging overlap isn't provided by `.paging`; "don't" was overstated where the source says "reduce"; and minor wording issues.
+  - **Status:** all fixed in the follow-up commit, which needs renewed review.
 
 ## ios-design skill — 13 October 2026
 

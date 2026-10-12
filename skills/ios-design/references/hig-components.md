@@ -2,11 +2,13 @@
 
 Distilled from the [Human Interface Guidelines](https://developer.apple.com/design/human-interface-guidelines) component and pattern pages (read 13 October 2026). Paraphrased; follow the linked page for exact wording.
 
+Contents: [Navigation](#navigation) · [Presentation](#presentation) · [Content views and controls](#content-views-and-controls) · [Feedback and state](#feedback-and-state) · [Lifecycle and settings](#lifecycle-and-settings)
+
 ## Navigation
 
 **[Toolbars](https://developer.apple.com/design/human-interface-guidelines/toolbars)**
 - Include only the most important actions; put the rest in a More menu only if needed. Don't add a custom overflow.
-- Don't add custom toolbar backgrounds or tinted controls. Let the content inform the color and use the scroll edge effect for separation.
+- Minimize custom toolbar backgrounds and tinted controls, and reserve tint for the one primary action. Let the content inform the color and use the scroll edge effect for separation.
 - Titles: short (under about 15 characters), never the app name, and may be empty when the content already identifies the screen. On iOS a large title collapses on scroll to keep people oriented.
 - Use the standard Back and Close buttons with their standard symbols, not text labels saying "Back" or "Close". A custom version must look and behave the same.
 - Prefer symbols without borders (for example `ellipsis`, not `ellipsis.circle`); use text for actions symbols don't express well, such as Edit.
@@ -73,7 +75,7 @@ Distilled from the [Human Interface Guidelines](https://developer.apple.com/desi
 
 **[Scroll views](https://developer.apple.com/design/human-interface-guidelines/scroll-views)**
 - Keep standard elastic scrolling, and hint that more content exists. Never nest scroll views of the same orientation.
-- Consider page-by-page scrolling that overlaps by a unit such as one line of text (`PagingScrollTargetBehavior`).
+- Consider page-by-page scrolling that overlaps by a unit such as one line of text. `.scrollTargetBehavior(.paging)` (`PagingScrollTargetBehavior`) pages by the full container with no overlap; overlap needs a custom `ScrollTargetBehavior` that subtracts it in `updateTarget`.
 - Auto-scroll only as much as needed (for example, to a search hit).
 - Prefer the automatic scroll edge effect style, use it only behind floating elements, and apply one per view.
 

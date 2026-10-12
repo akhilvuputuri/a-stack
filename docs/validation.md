@@ -1,8 +1,21 @@
 # Validation status
 
+## Claude Code plugin marketplace — 13 October 2026
+
+- **Change:** a-stack is now a Claude Code plugin marketplace (`.claude-plugin/marketplace.json`, named `a-stack`). It lists only instruction-only skills: currently `ios-design` 0.1.0, sourced from `./skills/ios-design`, with `skills: ["."]` so the plugin root holds `SKILL.md` directly.
+- **Handoff excluded:** Handoff stays on the release installer, because a git-sourced plugin cannot supply its compiled native addon.
+- **New test:** `tests/marketplace.test.cjs` enforces the allowlist, the source path, the skill name, the version format, and that plugin folders contain only Markdown and no symlinks. A mutation check that added `publish-handoff` to the marketplace made both tests fail.
+- **Checks:**
+  - `claude plugin validate .` passes (Claude Code 2.1.283).
+  - In an isolated `CLAUDE_CONFIG_DIR`:
+    - `claude plugin marketplace add <checkout>` plus `claude plugin install ios-design@a-stack` installed the plugin at user scope with `SKILL.md` and all eight references. `claude plugin details` reports one skill and about 115 tokens of always-on context.
+    - With `--scope project`, the CLI wrote the `extraKnownMarketplaces`/`enabledPlugins` shape the README documents, and listed the plugin as enabled at project scope.
+  - `npm test` passes 38/38.
+- **Not verified:** automatic registration when a contributor trusts a repository whose committed settings declare the marketplace. This happens at interactive session start and was not exercised. Installing from GitHub at a tag needs the tag to exist; it will be cut from the reviewed merge commit.
+
 ## ios-design reader theme scope — 13 October 2026
 
-- **Change:** follow-up to the HIG pass, from the reviewer's optional suggestion. As finally merged, `content-apps.md` recommends:
+- **Change:** follow-up to the HIG pass, from the reviewer's optional suggestion. As of the PR's final head (`5b8b838`, merged as `bedb8b4`), `content-apps.md` recommends:
   - a `.fullScreenCover` reader with `.preferredColorScheme` applied inside it
   - `.preferredColorScheme` inside every sheet the reader presents
   - for UIKit, a full-screen `UINavigationController` carrying `overrideUserInterfaceStyle`

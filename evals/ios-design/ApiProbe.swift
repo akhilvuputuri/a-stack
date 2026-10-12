@@ -99,3 +99,23 @@ struct HIGProbe: View {
 }
 
 let prominentStyle = UIBarButtonItem.Style.prominent
+
+// Scoping a reading theme's interface style to one screen. Compile-only: this proves the APIs
+// exist, not how bars or sheets render; rendering must be checked in a simulator.
+struct ThemeScopeProbe: View {
+  let scheme: ColorScheme = .light
+  @State var showSheet = false
+  @State var showReader = false
+  var body: some View {
+    Text("Article")
+      .environment(\.colorScheme, scheme)
+      .toolbarColorScheme(scheme, for: .navigationBar, .bottomBar)
+      .sheet(isPresented: $showSheet) { Text("Aa").preferredColorScheme(scheme) }
+      .fullScreenCover(isPresented: $showReader) {
+        NavigationStack { Text("Reader") }.preferredColorScheme(scheme)
+      }
+  }
+}
+final class ThemeScopeController: UIViewController {
+  override func viewDidLoad() { super.viewDidLoad(); overrideUserInterfaceStyle = .light }
+}

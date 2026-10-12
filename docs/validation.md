@@ -1,5 +1,32 @@
 # Validation status
 
+## ios-design reader theme scope — 13 October 2026
+
+- **Change:** follow-up to the HIG pass, from the reviewer's optional suggestion. As finally merged, `content-apps.md` recommends:
+  - a `.fullScreenCover` reader with `.preferredColorScheme` applied inside it
+  - `.preferredColorScheme` inside every sheet the reader presents
+  - for UIKit, a full-screen `UINavigationController` carrying `overrideUserInterfaceStyle`
+
+  It advises against a pushed reader for themed reading.
+- **Pitfall:** `.preferredColorScheme` on a view pushed in the main stack restyles the whole window while shown; this was observed. The same is documented, not observed, for a window or root `overrideUserInterfaceStyle`.
+- **Checklist:** a new item requires the system style to return after leaving the reader.
+- **Checks:**
+  - `ApiProbe.swift` covers these APIs and typechecks against the iOS 26.2 simulator SDK.
+  - `quick_validate.py` passes.
+- **Simulator evidence:** the independent reviewer built a scratch probe app on the iPhone 17 Pro simulator (iOS 26.3.1, system in Light Mode, reader forced dark). It recorded interface styles, bar styles, and the web view's `prefers-color-scheme`, with screenshots. The guidance now reflects those observations.
+- **Not verified:** devices, iPad, a system Dark Mode setting, and scroll-edge transitions. The repository probe is compile-only.
+- **Devin Review of `c779ed3`:**
+  - **Bug:** `.toolbarColorScheme` applies only while the bar background is visible, so see-through glass bars could keep the system style.
+  - **Flag:** the probe can't show rendering.
+  - **Response:** the guidance now leads with a full-screen presentation plus `.preferredColorScheme`, where Apple documents scoping to the presentation. It qualifies the pushed-reader approach and requires a simulator check of both scroll-edge states. The probe is labelled compile-only.
+- **Independent review of `5230d79`:** REQUEST CHANGES, based on simulator observation.
+  - Sheets opened from a full-screen reader keep the system style unless they set their own color scheme.
+  - A UIKit override on a pushed controller leaves the parent's bars in the system style.
+  - A pushed SwiftUI reader drew its large title dark-on-dark.
+  - SwiftUI `.preferredColorScheme` on a pushed view reverted after going back; it didn't persist. The UIKit window or root override was not tested.
+  - All four are reflected in the follow-up commit.
+- **Independent re-review of `cebac2e`:** APPROVE. Its non-blocking wording notes (which results were observed versus documented, and the bottom bar's adaptive glass) are addressed in the next commit, which needs Devin and reviewer confirmation.
+
 ## ios-design HIG pass — 13 October 2026
 
 The first version drew on Apple's Liquid Glass overview and secondary sources, not the Human Interface Guidelines themselves. This pass read the HIG directly:

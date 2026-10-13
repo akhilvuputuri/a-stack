@@ -25,7 +25,22 @@
   - **Cloud sessions:** that cloud sessions (claude.ai/code) install project-pinned plugins and run their hooks.
   - **Folder trust:** automatic registration when a contributor trusts a repository.
   - **Other agents:** Codex or other agents. For those, the AGENTS.md block is the supported path.
-- **Release:** pending review. The tag `workflow--v0.1.0` will be cut from the reviewed merge commit.
+- **Independent review of `1ef612b` (Opus 5.5):** REQUEST CHANGES.
+  - **What it reproduced:** validation, the marketplace tests, `npm pack --dry-run`, the hook format against the Claude Code docs, fidelity to the chief-agent sources, and that ios-design's guarantees are preserved.
+  - **Blocking finding:** the review skill allowed a backgrounded reviewer "when your next step does not depend on it", which is weaker than the owner's foreground-only rule.
+  - **Non-blocking findings:**
+    - Skill frontmatter could declare `hooks:` and still pass the tests after a version bump. This gap already existed for ios-design.
+    - The adopt skill could overwrite an existing a-stack `ref` and downgrade another plugin, or pin a tag whose versions are not all released.
+    - The AGENTS.md block said "behavior change" where CORE.md says "every change".
+    - The journal index template linked a `TEMPLATE.md` that the skill never told agents to create.
+- **Follow-up:**
+  - The reviewer always runs in the foreground.
+  - A test now requires every marketplace SKILL.md frontmatter to hold exactly `name` and `description`. Mutation check: adding `hooks: {}` to a skill fails the structural test.
+  - The adopt skill keeps or upgrades an existing ref without downgrading, pins only fully released tags, and writes the actual ref into the block, now parameterised as `<REF>`. The README states the same rule.
+  - The block wording now matches CORE.md.
+  - The journal skill copies the entry template to `TEMPLATE.md` when it creates a journal.
+  - The unreleased 0.1.0 digest is re-recorded. `npm test` passes 42/42 and `claude plugin validate .` passes.
+- **Release:** pending re-review. The tag `workflow--v0.1.0` will be cut from the reviewed merge commit.
 
 ## Claude Code plugin marketplace — 13 October 2026
 

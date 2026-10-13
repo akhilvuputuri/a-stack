@@ -23,7 +23,7 @@ Copy [the template](template.md) to `<journal>/NN-short-slug.md`.
 
 - Choose `NN` by checking the highest number **on freshly fetched main and in open PRs**, because parallel sessions take numbers. Never renumber existing files.
 - Title the entry with a concrete engineering question, for example "Why can a durable task still forget its scope?".
-- Add a row to the index (`<journal>/README.md`), ordered by **work date**, not entry number. If the journal doesn't exist yet, create it from [the index template](index-template.md).
+- Add a row to the index (`<journal>/README.md`), ordered by **work date**, not entry number. If the journal doesn't exist yet, create `<journal>/README.md` from [the index template](index-template.md) and copy [the entry template](template.md) to `<journal>/TEMPLATE.md`, which the index links to.
 
 ## Evidence rules
 

@@ -45,6 +45,15 @@ function assertInstructionOnly(dir, allowed) {
   }
 }
 
+// Skill frontmatter can declare hooks, tools and other behavior that runs when the skill
+// is invoked. Marketplace skills are instructions only, so allow exactly name and description.
+function assertPlainFrontmatter(text, name) {
+  const match = /^---\n([\s\S]*?)\n---\n/.exec(text);
+  assert.ok(match, name + ": SKILL.md needs frontmatter");
+  const keys = match[1].split("\n").map((line) => line.split(":")[0]);
+  assert.deepEqual(keys, ["name", "description"], name + ": frontmatter may hold only name and description");
+}
+
 test("each skill plugin points at its skill folder with matching name and no runtime", () => {
   for (const plugin of marketplace.plugins.filter((p) => PLUGINS[p.name] === "skill")) {
     assert.equal(plugin.source, "./skills/" + plugin.name);
@@ -54,6 +63,7 @@ test("each skill plugin points at its skill folder with matching name and no run
     const dir = path.join(ROOT, plugin.source);
     const skill = fs.readFileSync(path.join(dir, "SKILL.md"), "utf8");
     assert.match(skill, new RegExp("^---\\nname: " + plugin.name + "\\n"));
+    assertPlainFrontmatter(skill, plugin.name);
     assertInstructionOnly(dir, []);
   }
 });
@@ -78,6 +88,7 @@ test("each bundle plugin has named skills and a hook that only loads CORE.md", (
     for (const name of names) {
       const skill = fs.readFileSync(path.join(dir, "skills", name, "SKILL.md"), "utf8");
       assert.match(skill, new RegExp("^---\\nname: " + name + "\\ndescription: \\S"));
+      assertPlainFrontmatter(skill, name);
     }
     const core = fs.readFileSync(path.join(dir, "CORE.md"), "utf8");
     assert.ok(core.length < HOOK_OUTPUT_LIMIT, "CORE.md must stay under the hook output cap");

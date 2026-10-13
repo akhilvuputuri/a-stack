@@ -16,7 +16,7 @@ Review is a bounded claim about one exact commit, made by an agent that did not 
 ## Spawning the reviewer
 
 - Use a fresh agent that did not author the change, on the strongest model available. The repository bindings name the preferred model; if it is unavailable, use the strongest available one and disclose the fallback. Select the model explicitly when the tool allows it.
-- Run the reviewer in the foreground when your next step depends on its verdict.
+- Always run the reviewer in the foreground. Never background it: a backgrounded reviewer can stall until the watchdog kills it. Its own commands must also run in the foreground, as the prompt template requires.
 - Fill in [the reviewer prompt](reviewer-prompt.md). Never include the verdict you expect, and never paste secrets or private data into it.
 - Point the reviewer at the repository's REVIEW.md when one exists. Otherwise point it at [the review contract](review-contract.md).
 - Report the checks you already ran so the reviewer does not repeat the whole suite. It should run targeted checks that could falsify the change.

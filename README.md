@@ -30,7 +30,7 @@ The release installer below covers the two Handoff skills. `ios-design` and `wor
 
 A repository adopts it by pinning `workflow@a-stack` in its `.claude/settings.json` and putting [the workflow block](plugins/workflow/skills/adopt/agents-block.md) at the top of its AGENTS.md. The block links `CORE.md` at the pinned tag, repeats the non-negotiable rules for agents that only read AGENTS.md, and holds the repository's **bindings**: its check commands, reviewer, merge authority, release verification, record paths and exceptions. Ask an agent to "adopt the a-stack workflow in this repo" and the `adopt` skill does this.
 
-The current release tag is `workflow--v0.1.0`. A project that uses several a-stack plugins declares the marketplace once, with one `ref`. Any tag contains every plugin as of that commit, so pin the newest tag that carries the versions you want.
+The current release tag is `workflow--v0.1.0`. A project that uses several a-stack plugins declares the marketplace once, with one `ref`. Any tag contains every plugin as of that commit, so pin the newest tag that carries the versions you want, and only a tag at which every plugin version you use is itself tagged. The `adopt` skill handles an existing pin without downgrading other plugins.
 
 ## Claude Code plugin marketplace
 

@@ -5,12 +5,12 @@ Paste this at the top of the repository's AGENTS.md and replace each `<…>`.
 ```markdown
 ## Workflow
 
-This repository follows the [a-stack engineering workflow](https://github.com/akhilvuputuri/a-stack/blob/workflow--v<VERSION>/plugins/workflow/CORE.md), pinned to `workflow--v<VERSION>`. Claude Code loads it through the `workflow@a-stack` plugin pinned in `.claude/settings.json`. Other agents should read the linked CORE.md at that tag before starting work. The bindings below supply this repository's specifics and win where they are more specific.
+This repository follows the [a-stack engineering workflow](https://github.com/akhilvuputuri/a-stack/blob/<REF>/plugins/workflow/CORE.md), pinned to marketplace ref `<REF>` (normally `workflow--v<VERSION>`; see the adopt skill when several a-stack plugins share the ref). Claude Code loads it through the `workflow@a-stack` plugin pinned in `.claude/settings.json`. Other agents should read the linked CORE.md at that tag before starting work. The bindings below supply this repository's specifics and win where they are more specific.
 
 Non-negotiable even without the plugin:
 
 - Fetch origin and read from `origin/<default branch>` before exploring or changing anything. Never reset or clean a shared or dirty checkout. Work on a branch or worktree.
-- Every behavior change gets an independent reviewer that did not write it, with an explicit APPROVE or REQUEST CHANGES for the exact head SHA. Re-review after every fix.
+- Every change gets an independent reviewer that did not write it (bindings may allow a focused review for docs-only changes), with an explicit APPROVE or REQUEST CHANGES for the exact head SHA. Re-review after every fix.
 - A task ends at verified delivery (exact deployed SHA and evidence) or a named blocker.
 - Label claims as reported, tested, measured, hypothesis or deferred. Never invent results.
 - Commit as the human developer's git identity, with no agent author or `Co-Authored-By` trailer. Keep secrets and private data out of the repository, PRs and logs.

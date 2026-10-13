@@ -24,6 +24,14 @@ Merge these keys into the repository's committed `.claude/settings.json`, keepin
 
 Use the latest released `workflow--v<VERSION>` tag (`git ls-remote --tags https://github.com/akhilvuputuri/a-stack 'workflow--v*'`). Pinning means every contributor and session uses the same reviewed rules. Upgrading is a deliberate PR that changes the `ref`.
 
+The marketplace has one `ref` for all a-stack plugins, and a tag carries every plugin as of its commit. If the repository already pins an a-stack `ref`, for example `ios-design--v<x>`:
+
+- **Keep it** when it is newer and already contains the workflow version you want. Check `.claude-plugin/marketplace.json` at that ref.
+- **Otherwise move to the newer tag** after confirming that it still contains the other plugins' versions you rely on. Never silently downgrade another plugin.
+- **Pin only tags.** Pin only a tag whose plugin versions are all released (tagged). An untagged version can still change under the same version number, and Claude Code won't reinstall it.
+
+Whichever ref you pin, write that actual ref in the AGENTS.md block, so that the CORE.md link matches what Claude Code loads.
+
 The plugin's SessionStart hook loads the core rules into every Claude Code session, and its skills load when a task matches them.
 
 ## 2. Add the workflow block to AGENTS.md

@@ -1,22 +1,47 @@
 # a-stack
 
-Akhil's lean collection of coding and AI workflow skills. Start with **Handoff**: save the context for one task, then resume it in another local agent session.
+Akhil's lean collection of coding and AI workflow skills for coding agents.
 
-| Skill | Use |
-| --- | --- |
-| `publish-handoff` | Select one topic, draft/save a local handoff, or publish an updated revision. |
-| `resume-handoff` | Retrieve/list handoffs, check relevant current state, and explain the next step. Implement when the user asks. |
-| `ios-design` | Audit or refine native iPhone/iPad interfaces using a source-linked digest of Apple's Human Interface Guidelines: Liquid Glass, Dynamic Type, accessibility, components, writing, app icons, and reading/offline-first patterns. Instructions only; no runtime. |
-| `workflow` (plugin) | Akhil's engineering workflow for coding agents. Always-on core rules plus skills: `preflight`, `independent-review`, `ship`, `journal`, `incident`, `experiment`, `adopt`. Instructions plus one SessionStart hook; no runtime. |
+## Install
 
-The release installer below covers the two Handoff skills. `ios-design` and `workflow` have no helper or runtime, and install as Claude Code plugins (or, for `ios-design`, by copying the folder).
+Any agent (Claude Code, Codex, Cursor, Copilot, Gemini and [70+ more](https://github.com/vercel-labs/skills#supported-agents)):
+
+```sh
+npx skills add akhilvuputuri/a-stack
+```
+
+This installs the instruction skills from `ios-design` and `workflow`. Add `--list` to browse, `--skill <name>` to pick, `-g` for every project, and `-a <agent>` to choose agents. For a reviewed release instead of the default branch, use a tag URL such as `npx skills add https://github.com/akhilvuputuri/a-stack/tree/workflow--v0.1.1`.
+
+**Claude Code:** the plugin is recommended, because only the plugin adds the workflow's always-on core rules (a SessionStart hook).
+
+```sh
+claude plugin marketplace add akhilvuputuri/a-stack
+claude plugin install workflow@a-stack
+claude plugin install ios-design@a-stack
+```
+
+**Codex** (CLI plugin marketplace):
+
+```sh
+codex plugin marketplace add akhilvuputuri/a-stack
+codex plugin add workflow@a-stack
+codex plugin add ios-design@a-stack
+```
+
+**Handoff** needs a compiled helper per platform, so it installs only through the [release installer](#install-without-cloning). `npx skills` hides it.
+
+| Plugin | Skills | Use |
+| --- | --- | --- |
+| `workflow` | `preflight`, `independent-review`, `ship`, `journal`, `incident`, `experiment`, `adopt` | Akhil's engineering workflow for coding agents, plus always-on core rules in Claude Code |
+| `ios-design` | `ios-design` | Audit or refine native iPhone/iPad interfaces using a source-linked digest of Apple's Human Interface Guidelines: Liquid Glass, Dynamic Type, accessibility, components, writing, app icons, and reading/offline-first patterns |
+| Handoff (release installer) | `publish-handoff`, `resume-handoff` | Save the context for one task, then resume it in another local agent session |
 
 ## Engineering workflow for every repository
 
-`plugins/workflow` centralises the development workflow that grew up in chief-agent, so other repositories can apply it without copying it. It has two layers:
+`plugins/workflow` centralises the development workflow that grew up in chief-agent, so other repositories can apply it without copying it.
 
-- **Core rules** ([`CORE.md`](plugins/workflow/CORE.md)): fresh-state preflight, capability checks, independent exact-head review, verified delivery, evidence labels, records and hygiene. A SessionStart hook prints the file, which puts it into every Claude Code session's context, including after `/clear` and compaction.
-- **Skills**, which load when a task reaches that stage:
+- **Core rules** ([`CORE.md`](plugins/workflow/CORE.md)) cover fresh-state preflight, capability checks, independent exact-head review, verified delivery, evidence labels, records and hygiene. In Claude Code, a SessionStart hook loads them into every session, including after `/clear` and compaction. Other agents get the condensed rules from the repository's AGENTS.md block.
+- **Skills** load when a task reaches their stage:
 
   | Skill | Use |
   | --- | --- |
@@ -28,51 +53,40 @@ The release installer below covers the two Handoff skills. `ios-design` and `wor
   | `experiment` | Frozen baseline, one mechanism at a time, honest reporting |
   | `adopt` | Set up a repository: pin the plugin, add the AGENTS.md block, fill in bindings |
 
-A repository adopts it by pinning `workflow@a-stack` in its `.claude/settings.json` and putting [the workflow block](plugins/workflow/skills/adopt/agents-block.md) at the top of its AGENTS.md. The block links `CORE.md` at the pinned tag, repeats the non-negotiable rules for agents that only read AGENTS.md, and holds the repository's **bindings**: its check commands, reviewer, merge authority, release verification, record paths and exceptions. Ask an agent to "adopt the a-stack workflow in this repo" and the `adopt` skill does this.
+To adopt it in a repository, ask an agent to "adopt the a-stack workflow in this repo". The `adopt` skill:
 
-The current release tag is `workflow--v0.1.0`. A project that uses several a-stack plugins declares the marketplace once, with one `ref`. Any tag contains every plugin as of that commit, so pin the newest tag that carries the versions you want, and only a tag at which every plugin version you use is itself tagged. The `adopt` skill handles an existing pin without downgrading other plugins.
+- pins `workflow@a-stack` in `.claude/settings.json`;
+- puts [the workflow block](plugins/workflow/skills/adopt/agents-block.md) at the top of AGENTS.md. The block links `CORE.md` at the pinned tag, repeats the non-negotiable rules, and holds the repository's **bindings**: check commands, reviewer, merge authority, release verification, record paths and exceptions.
 
-## Claude Code plugin marketplace
+## Pinning a repository to a release
 
-This repository is a Claude Code plugin marketplace (`.claude-plugin/marketplace.json`) named `a-stack`. It lists only instruction-only plugins: currently `ios-design` and `workflow`. Handoff isn't distributed as a plugin, because its native addon is built per platform and one marketplace entry can't choose between builds. It stays on the release installer.
-
-To install for yourself:
-
-```sh
-claude plugin marketplace add akhilvuputuri/a-stack
-claude plugin install ios-design@a-stack
-```
-
-To make a repository depend on it, commit this to that repository's `.claude/settings.json`, pinned to a release tag:
+Commit this to the repository's `.claude/settings.json`:
 
 ```json
 {
   "extraKnownMarketplaces": {
-    "a-stack": { "source": { "source": "github", "repo": "akhilvuputuri/a-stack", "ref": "ios-design--v0.1.0" } }
+    "a-stack": { "source": { "source": "github", "repo": "akhilvuputuri/a-stack", "ref": "workflow--v0.1.1" } }
   },
-  "enabledPlugins": { "ios-design@a-stack": true }
+  "enabledPlugins": { "workflow@a-stack": true, "ios-design@a-stack": true }
 }
 ```
 
-Claude Code registers the marketplace once a contributor trusts the folder. The skill is invoked as `/ios-design:ios-design` and also loads when a task matches it.
+For Codex, enable the plugins in the repository's `.codex/config.toml`. Each contributor first adds the marketplace with `codex plugin marketplace add akhilvuputuri/a-stack@workflow--v0.1.1`.
 
-Claude Code installs a new copy only when the plugin's `version` changes.
-- Every change to a plugin's folder (`skills/ios-design`, `plugins/workflow`) bumps its `version` in `.claude-plugin/marketplace.json` and records the folder's digest for that version in `.claude-plugin/releases.json`.
-- The reviewed merge commit is tagged `<plugin>--v<version>` (for example `ios-design--v<version>`), following Claude Code's `<plugin>--v<version>` convention, as soon as it merges.
-- A project moves to a release by changing its `ref` to that tag.
-
-`tests/marketplace.test.cjs` fails if a plugin changes without a new version, or if the README's pinned tag doesn't match the version.
-
-This README provides no project-level pin for Codex. Install the same tagged folder into its user skills directory, replacing any older copy. Codex discovery of `~/.agents/skills` has not been verified for this skill.
-
-```sh
-tmp=$(mktemp -d)
-git clone --depth 1 --branch ios-design--v0.1.0 https://github.com/akhilvuputuri/a-stack "$tmp"
-mkdir -p ~/.agents/skills && rm -rf ~/.agents/skills/ios-design && cp -R "$tmp/skills/ios-design" ~/.agents/skills/
-rm -rf "$tmp"
+```toml
+[plugins."workflow@a-stack"]
+enabled = true
 ```
 
-For other agents, point them at `skills/ios-design/SKILL.md` from that tag.
+The marketplace has one `ref`, and a tag carries every plugin as of its commit. Current releases are `workflow--v0.1.1` and `ios-design--v0.1.1`, both on the same commit. Pin only a tag at which every plugin version you use is itself tagged. The `adopt` skill handles an existing pin without downgrading other plugins.
+
+### Releasing a plugin
+
+Claude Code and Codex install a new copy only when a plugin's `version` changes.
+
+- Every change to a plugin's folder under `plugins/` bumps its `version` in `.claude-plugin/marketplace.json`, `.agents/plugins/marketplace.json` and its `.codex-plugin/plugin.json`. It also records the folder's digest for that version in `.claude-plugin/releases.json`.
+- The reviewed merge commit is tagged `<plugin>--v<version>`, following Claude Code's convention, as soon as it merges. Released digests are immutable.
+- `tests/marketplace.test.cjs` fails if a plugin changes without a new version, if the Codex and Claude manifests disagree, or if the README's pinned tags don't match the versions.
 
 **Node 22+ is the only runtime requirement.** Release artifacts bundle a small Node-API filesystem addon to retain directory-relative reads, atomic writes, and store locking on macOS/Linux. No Python, compiler, dependency installation, daemon, MCP server, or model service is needed to use an installed skill. Windows is unsupported in this version. Git is optional for local code metadata; no Git is required to install or use discussion-only handoffs.
 
@@ -80,7 +94,7 @@ Use the matching platform/architecture artifact. macOS binaries target macOS 11+
 
 ## Install without cloning
 
-Download the installer matching your laptop from the release: `a-stack-install-darwin-arm64.cjs` for an Apple Silicon Mac, or `a-stack-install-darwin-x64.cjs` for an Intel Mac. Linux artifacts use the corresponding architecture name. Check `node -p 'process.platform + "-" + process.arch'` if unsure. Release publication is pending review; prepared artifacts are not yet a public release.
+This is the Handoff installer. Download the installer matching your laptop from the release: `a-stack-install-darwin-arm64.cjs` for an Apple Silicon Mac, or `a-stack-install-darwin-x64.cjs` for an Intel Mac. Linux artifacts use the corresponding architecture name. Check `node -p 'process.platform + "-" + process.arch'` if unsure. Release publication is pending review; prepared artifacts are not yet a public release.
 
 ```sh
 node a-stack-install-darwin-arm64.cjs --agent codex
@@ -92,9 +106,11 @@ The single downloaded file includes both skills, the helper, schema, reference, 
 
 The downloaded installer runs offline. Transfer it and its release checksum file to a work laptop through your approved mechanism; no source checkout or Git history travels with it. Updates are explicit: download a chosen new version and rerun with `--replace`. Recognized Python-era installations can be upgraded to Node without modifying stored handoffs. Unknown layouts/versions and unexpected file types are rejected to preserve local files. The installer never reads runtime records.
 
-## Optional npx installation
+## Optional npx installation of Handoff
 
-Self-contained, platform-specific skill ZIPs are also built. Vercel's `skills` CLI supports direct archive URLs, agent selection, and copy mode. Once published and validated, a ZIP can be installed using:
+`npx skills add akhilvuputuri/a-stack` hides the Handoff skills (`metadata.internal`), because a repository copy has no compiled addon. Forced with `INSTALL_INTERNAL_SKILLS=1`, the copied helper reports that the filesystem addon is unavailable.
+
+Self-contained, platform-specific Handoff skill ZIPs are also built. Vercel's `skills` CLI supports direct archive URLs, agent selection, and copy mode. Once published and validated, a ZIP can be installed using:
 
 ```sh
 npx skills add RELEASE_ZIP_URL --global --agent codex --copy

@@ -9,11 +9,11 @@ This repository follows the [a-stack engineering workflow](https://github.com/ak
 
 Non-negotiable even without the plugin:
 
-- Fetch origin and read from `origin/<default branch>` before exploring or changing anything. Never reset or clean a shared or dirty checkout. Work on a branch or worktree.
+- Fetch origin and read from `origin/<default branch>` before exploring or changing anything, and again whenever you cannot establish that the last fetch is still current. Never reset or clean a shared or dirty checkout. Work on a branch or worktree.
 - Every change gets an independent reviewer that did not write it (bindings may allow a focused review for docs-only changes), with an explicit APPROVE or REQUEST CHANGES for the exact head SHA. Re-review after every fix.
 - A task ends at verified delivery (exact deployed SHA and evidence) or a named blocker.
 - Label claims as reported, tested, measured, hypothesis or deferred. Never invent results.
-- Commit as the human developer's git identity, with no agent author or `Co-Authored-By` trailer. Keep secrets and private data out of the repository, PRs and logs.
+- Commit as the human developer's git identity, with no agent author or `Co-Authored-By` trailer. If the identity is unset or shows an agent, stop and ask; never set one yourself. Keep secrets and private data out of the repository, PRs and logs.
 
 ### Workflow bindings
 

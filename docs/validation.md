@@ -1,5 +1,40 @@
 # Validation status
 
+## npx and Codex installation; workflow and ios-design 0.1.1 — 14 October 2026
+
+- **Change:** `npx skills add akhilvuputuri/a-stack` (and Codex's plugin marketplace) now install the instruction skills, the way `addyosmani/agent-skills` does.
+  - **One plugin layout.** Every marketplace plugin now lives at `plugins/<name>/skills/<skill>/SKILL.md`. `ios-design` moved from `skills/ios-design` to `plugins/ios-design/skills/ios-design`. Codex discovers skills only in this layout. It ignored a `SKILL.md` at the plugin root with `skills` set to `"./"`, `"."` or omitted. The Claude skill name stays `/ios-design:ios-design`.
+  - **Codex manifests.** `.agents/plugins/marketplace.json` and each plugin's `.codex-plugin/plugin.json` were added, with no Codex hooks, which are desktop-only.
+  - **Handoff hidden from npx.** Handoff stays in `skills/`, and `metadata.internal: true` hides it from `npx skills`.
+  - **Rules from the chief-agent review, upstreamed into CORE.md and the AGENTS.md block:**
+    - Refetch whenever the last fetch can't be shown to be current.
+    - If the git identity is unset or shows an agent, stop and ask; never set one yourself.
+    - A supplied memory or context item is not proof that the model used it.
+  - **Docs.** The adopt skill and README gained Codex and npx guidance. The README now opens with install commands.
+  - **Versions:** `ios-design` 0.1.1 and `workflow` 0.1.1.
+- **Tests:** `tests/marketplace.test.cjs` now requires:
+  - the unified layout, with only Markdown, `.codex-plugin/plugin.json` and the workflow hook;
+  - plain skill frontmatter;
+  - the Codex marketplace and manifests to mirror the Claude marketplace (names, versions, descriptions, local paths, `skills: "./skills/"`, no hooks);
+  - `skills/` to hold only the two Handoff skills, both `internal`.
+
+  The immutability test now reads each tag's own `.claude-plugin/marketplace.json` for the source path, so moved plugins keep their released digests verified. `ios-design--v0.1.0` and `workflow--v0.1.0` both pass at their old paths.
+- **Checks** (14 October 2026, macOS arm64):
+  - `npm test` passes 43/43. `claude plugin validate` passes for `.`, `plugins/ios-design` and `plugins/workflow`.
+  - **npx:** `skills@1.7.0`, in a scratch `HOME`.
+    - Run against this checkout, `--list` finds 8 skills: ios-design plus the seven workflow skills. With `INSTALL_INTERNAL_SKILLS=1` it finds 10.
+    - `--skill '*' -a claude-code -a codex --copy` installed all 8 into `.claude/skills` and `.agents/skills`, including ios-design's 8 references and the workflow templates.
+    - On `main` before this change, an npx-installed Handoff helper failed with "Filesystem addon unavailable".
+    - A tag URL (`.../tree/ios-design--v0.1.0`) resolved that tag's skills.
+  - **Codex:** `@openai/codex@0.159.1`, scratch `CODEX_HOME`. `plugin marketplace add <checkout>` and `plugin add` installed both plugins at 0.1.1. `codex debug prompt-input` lists `ios-design:ios-design` and the seven `workflow:*` skills in the model-visible prompt.
+  - **Claude:** an isolated `CLAUDE_CONFIG_DIR` install from this checkout gives ios-design 0.1.1 (1 skill, no hooks) and workflow 0.1.1 (7 skills, 1 SessionStart hook).
+- **Not verified:**
+  - Installing from GitHub. The tags for this layout don't exist until merge, so `npx skills add akhilvuputuri/a-stack` and `codex plugin marketplace add akhilvuputuri/a-stack` were run against a local checkout only.
+  - Codex project config (`.codex/config.toml`) enabling plugins in a trusted project.
+  - Any agent other than Claude Code and Codex.
+  - The model seeing the Claude hook output in an authenticated session.
+- **Release:** pending review. Tag the reviewed merge commit `workflow--v0.1.1` and `ios-design--v0.1.1`.
+
 ## Workflow plugin — 14 October 2026
 
 - **Change:** adds `workflow` 0.1.0, a bundle plugin at `./plugins/workflow`. It extracts the generic engineering workflow from chief-agent's AGENTS.md, REVIEW.md and its cloud-workflow, portable-development, releases, journal, troubleshooting and development-process docs, as read from chief-agent `origin/main` `e4b71ad`. It also folds in owner preferences recorded in Claude memory: commit identity, foreground-only reviewers, shared-worktree hazards, and docs shipping with every change. Chief-specific architecture, product rules and infrastructure stay in chief-agent.

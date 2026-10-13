@@ -16,6 +16,13 @@
   - **Blocking finding:** moving a project to a new `ref` without bumping the plugin's `version` leaves users on the cached copy.
   - **Low findings:** the Handoff exclusion was worded too absolutely, and the Codex copy steps were fragile and unverified.
   - **Follow-up:** adopts the `<plugin>--v<version>` tag convention, documents the bump rule, and adds a README-tag/version test. Codex steps now replace the folder, use a temporary clone, and say Codex discovery is unverified.
+- **Independent re-review of `1352897`:** APPROVE. Its non-blocking notes: the version-bump rule was enforced only by documentation, the Codex "no project pin" sentence was unverified, and the temporary clone wasn't cleaned up.
+- **Devin Review of `1352897`:**
+  - **Bug:** "fresh Codex installs miss the skill". This targeted the earlier snippet, which lacked `mkdir -p`. The current snippet, run against an empty temporary `HOME`, installed `SKILL.md` and all references; a second run removed a planted stale file.
+  - **Flag:** version bumps rely on discipline.
+- **Follow-up:**
+  - `.claude-plugin/releases.json` records a SHA-256 digest of the skill folder for each version, and a test requires the current content to match the current version's digest. Mutation checks: a content change without a bump fails; a bump without a recorded digest fails.
+  - The Codex wording is softened, and the snippet removes its temporary clone.
 - **Not verified:** automatic registration when a contributor trusts a repository whose committed settings declare the marketplace. This happens at interactive session start and was not exercised. Installing from GitHub at a tag needs the tag to exist; `ios-design--v0.1.0` will be cut from the reviewed merge commit.
 
 ## ios-design reader theme scope — 13 October 2026

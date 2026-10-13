@@ -1,6 +1,7 @@
 "use strict";
 const { test } = require("node:test");
 const assert = require("node:assert/strict");
+const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
 const ROOT = path.resolve(__dirname, "..");
@@ -52,5 +53,34 @@ test("README pins the tag that matches each plugin version", () => {
     const pinned = [...readme.matchAll(new RegExp(plugin.name + "--v[0-9]+\\.[0-9]+\\.[0-9]+", "g"))].map((m) => m[0]);
     assert.ok(pinned.length > 0, "README must pin " + tag);
     assert.deepEqual([...new Set(pinned)], [tag]);
+  }
+});
+
+// Each released version records a digest of its skill folder, so changing the
+// skill without bumping its version (which Claude Code needs to ship an update) fails.
+function digest(dir) {
+  const hash = crypto.createHash("sha256");
+  for (const file of walk(dir).filter((f) => fs.lstatSync(f).isFile()).sort()) {
+    hash.update(path.relative(dir, file).split(path.sep).join("/") + "\0");
+    hash.update(fs.readFileSync(file));
+    hash.update("\0");
+  }
+  return hash.digest("hex");
+}
+
+test("each plugin's content matches the digest recorded for its version", () => {
+  const releases = JSON.parse(
+    fs.readFileSync(path.join(ROOT, ".claude-plugin/releases.json"), "utf8"),
+  );
+  for (const plugin of marketplace.plugins) {
+    const recorded = releases[plugin.name] || {};
+    const actual = digest(path.join(ROOT, plugin.source));
+    assert.equal(
+      recorded[plugin.version],
+      actual,
+      plugin.name + " changed: bump its version and record " + actual + " for it",
+    );
+    const digests = Object.values(recorded);
+    assert.equal(new Set(digests).size, digests.length, "each version needs distinct content");
   }
 });

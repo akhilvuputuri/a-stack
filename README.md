@@ -34,14 +34,20 @@ To make a repository depend on it, commit this to that repository's `.claude/set
 
 Claude Code registers the marketplace once a contributor trusts the folder. The skill is invoked as `/ios-design:ios-design` and also loads when a task matches it.
 
-Claude Code installs a new copy only when the plugin's `version` changes. Every change to `skills/ios-design` therefore bumps `version` in `.claude-plugin/marketplace.json`, and the reviewed merge commit is tagged `ios-design--v<version>`, following Claude Code's `<plugin>--v<version>` convention. A project moves to a release by changing its `ref` to that tag. `tests/marketplace.test.cjs` checks that the README's pinned tag matches the entry's `version`.
+Claude Code installs a new copy only when the plugin's `version` changes.
+- Every change to `skills/ios-design` bumps `version` in `.claude-plugin/marketplace.json` and records the folder's digest for that version in `.claude-plugin/releases.json`.
+- The reviewed merge commit is tagged `ios-design--v<version>`, following Claude Code's `<plugin>--v<version>` convention, as soon as it merges.
+- A project moves to a release by changing its `ref` to that tag.
 
-Codex has no equivalent of a project-level pin. Install the same tagged folder into its skills directory, replacing any older copy. Codex discovery of `~/.agents/skills` has not been verified for this skill.
+`tests/marketplace.test.cjs` fails if the skill changes without a new version, or if the README's pinned tag doesn't match the version.
+
+This README provides no project-level pin for Codex. Install the same tagged folder into its user skills directory, replacing any older copy. Codex discovery of `~/.agents/skills` has not been verified for this skill.
 
 ```sh
 tmp=$(mktemp -d)
 git clone --depth 1 --branch ios-design--v0.1.0 https://github.com/akhilvuputuri/a-stack "$tmp"
 mkdir -p ~/.agents/skills && rm -rf ~/.agents/skills/ios-design && cp -R "$tmp/skills/ios-design" ~/.agents/skills/
+rm -rf "$tmp"
 ```
 
 For other agents, point them at `skills/ios-design/SKILL.md` from that tag.

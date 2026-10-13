@@ -6,11 +6,11 @@ This repository follows the a-stack engineering workflow from its own source, [p
 
 Non-negotiable even without the plugin:
 
-- Fetch origin and read from `origin/main` before exploring or changing anything. Never reset or clean a shared or dirty checkout. Work on a branch or worktree.
+- Fetch origin and read from `origin/main` before exploring or changing anything, and again whenever you cannot establish that the last fetch is still current. Never reset or clean a shared or dirty checkout. Work on a branch or worktree.
 - Every change gets an independent reviewer that did not write it, with an explicit APPROVE or REQUEST CHANGES for the exact head SHA. Re-review after every fix.
 - A task ends at a verified merge, tag or release, or at a named blocker.
-- Label claims as reported, tested, measured, hypothesis or deferred. Never invent results.
-- Commit as the human developer's git identity, with no agent author or `Co-Authored-By` trailer. Keep secrets, real handoffs and private data out of the repository, PRs and logs.
+- Label claims as reported, tested, measured, hypothesis or deferred. Never invent results. A supplied memory or context item is not proof the model used it.
+- Commit as the human developer's git identity, with no agent author or `Co-Authored-By` trailer. If the identity is unset or shows an agent, stop and ask; never set one yourself. Keep secrets, real handoffs and private data out of the repository, PRs and logs.
 
 ### Workflow bindings
 
@@ -30,7 +30,7 @@ Use Node 22+ built-in libraries and the bundled filesystem addon for Handoff. Ru
 
 The schema is authoritative. Keep the dependency-free validator, renderer, skills and command documentation consistent with it. Preserve local-only behavior, immutable revisions, explicit conflicts, project isolation, and the boundary between evidence and executable authority.
 
-Marketplace plugins live at `plugins/<name>/skills/<skill>/SKILL.md`, the layout that Claude Code, Codex and `npx skills` all discover. They are instructions only: Markdown, a `.codex-plugin/plugin.json` manifest, and the workflow plugin's single SessionStart hook, which prints `CORE.md`. Keep `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json` in step. Handoff stays in `skills/`, hidden from `npx skills` with `metadata.internal`, because it needs the platform addon. Keep `CORE.md` under the 10,000-character hook output cap. Document the environments you actually tested, and do not infer another agent's compatibility from local helper tests.
+Marketplace plugins live at `plugins/<name>/skills/<skill>/SKILL.md`, the layout that Claude Code, Codex and `npx skills` all discover. They are instructions only: Markdown, a `.codex-plugin/plugin.json` manifest, and the workflow plugin's single Claude SessionStart hook, which prints `CORE.md`. Codex would otherwise discover `hooks/hooks.json` and run it without its arguments, so the workflow's Codex manifest points `hooks` at an explicit empty `.codex-plugin/hooks.json`. Keep `.claude-plugin/marketplace.json` and `.agents/plugins/marketplace.json` in step. Handoff stays in `skills/`, hidden from `npx skills` with `metadata.internal`, because it needs the platform addon. Keep `CORE.md` under the 10,000-character hook output cap. Document the environments you actually tested, and do not infer another agent's compatibility from local helper tests.
 
 ## Independent review
 

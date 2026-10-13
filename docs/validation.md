@@ -4,7 +4,7 @@
 
 - **Change:** `npx skills add akhilvuputuri/a-stack` (and Codex's plugin marketplace) now install the instruction skills, the way `addyosmani/agent-skills` does.
   - **One plugin layout.** Every marketplace plugin now lives at `plugins/<name>/skills/<skill>/SKILL.md`. `ios-design` moved from `skills/ios-design` to `plugins/ios-design/skills/ios-design`. Codex discovers skills only in this layout. It ignored a `SKILL.md` at the plugin root with `skills` set to `"./"`, `"."` or omitted. The Claude skill name stays `/ios-design:ios-design`.
-  - **Codex manifests.** `.agents/plugins/marketplace.json` and each plugin's `.codex-plugin/plugin.json` were added, with no Codex hooks, which are desktop-only.
+  - **Codex manifests.** `.agents/plugins/marketplace.json` and each plugin's `.codex-plugin/plugin.json` were added. The workflow's Codex manifest points `hooks` at an explicit empty `.codex-plugin/hooks.json`, so Codex doesn't discover the Claude hook (see the review below).
   - **Handoff hidden from npx.** Handoff stays in `skills/`, and `metadata.internal: true` hides it from `npx skills`.
   - **Rules from the chief-agent review, upstreamed into CORE.md and the AGENTS.md block:**
     - Refetch whenever the last fetch can't be shown to be current.
@@ -33,7 +33,20 @@
   - Codex project config (`.codex/config.toml`) enabling plugins in a trusted project.
   - Any agent other than Claude Code and Codex.
   - The model seeing the Claude hook output in an authenticated session.
-- **Release:** pending review. Tag the reviewed merge commit `workflow--v0.1.1` and `ios-design--v0.1.1`.
+- **Independent review of `2b4729d` (Opus 5.5):** REQUEST CHANGES.
+  - **Blocking.** Codex discovers `hooks/hooks.json` by default when its manifest doesn't define `hooks`. The app-server `hooks/list` call returned `workflow@a-stack:hooks/hooks.json:session_start` with `command: "cat"`: Codex had dropped the Claude-only `args`. If a user trusted it, the hook would print the SessionStart input instead of CORE.md. The PR's claim that the plugin had no Codex hooks was wrong.
+  - **Non-blocking:**
+    - The Codex project instructions left out `codex plugin add`, and enabling a plugin in project config does not install it.
+    - `metadata.internal` also hides Handoff in the release ZIP route.
+    - The AGENTS.md block lacked the supplied-memory rule. a-stack's own block lacked the new rules.
+    - The tests no longer pinned ios-design's skill name, any plugin could carry a hook, and a tag missing from its marketplace failed with an unclear error.
+- **Follow-up:**
+  - **Codex hooks.** First tried `"hooks": []`; `hooks/list` still reported the hook, so that doesn't work. Then pointed `hooks` at an explicit `./.codex-plugin/hooks.json` containing `{"hooks": {}}`. After a reinstall, `hooks/list` reports 0 workflow hooks, and `prompt-input` still lists all seven workflow skills. A test requires this, and removing the key fails it.
+  - **Install docs.** The README and adopt skill now include `codex plugin add`. The ZIP route documents `INSTALL_INTERNAL_SKILLS=1`.
+  - **Rules.** The block and a-stack's AGENTS.md carry all three upstreamed rules.
+  - **Tests.** They pin each plugin's skill inventory and allow hooks only for workflow. A missing plugin in a tag's marketplace now fails with a clear message.
+  - The unreleased workflow 0.1.1 digest is re-recorded. `npm test` passes 43/43, and `claude plugin validate` passes for all three.
+- **Release:** pending re-review. Tag the reviewed merge commit `workflow--v0.1.1` and `ios-design--v0.1.1`.
 
 ## Workflow plugin — 14 October 2026
 

@@ -12,7 +12,7 @@ npx skills add akhilvuputuri/a-stack
 
 This installs the instruction skills from `ios-design` and `workflow`. Add `--list` to browse, `--skill <name>` to pick, `-g` for every project, and `-a <agent>` to choose agents. For a reviewed release instead of the default branch, use a tag URL such as `npx skills add https://github.com/akhilvuputuri/a-stack/tree/workflow--v0.1.1`.
 
-**Claude Code:** the plugin is recommended, because only the plugin adds the workflow's always-on core rules (a SessionStart hook).
+**Claude Code:** the plugin is recommended, because only the Claude plugin adds the workflow's always-on core rules (a SessionStart hook). The Codex plugin deliberately ships no hooks.
 
 ```sh
 claude plugin marketplace add akhilvuputuri/a-stack
@@ -71,7 +71,7 @@ Commit this to the repository's `.claude/settings.json`:
 }
 ```
 
-For Codex, enable the plugins in the repository's `.codex/config.toml`. Each contributor first adds the marketplace with `codex plugin marketplace add akhilvuputuri/a-stack@workflow--v0.1.1`.
+For Codex, each contributor runs `codex plugin marketplace add akhilvuputuri/a-stack@workflow--v0.1.1` and then `codex plugin add workflow@a-stack` once. The repository's `.codex/config.toml` then keeps the plugin enabled in that trusted project. Enabling it there does not install it.
 
 ```toml
 [plugins."workflow@a-stack"]
@@ -108,12 +108,12 @@ The downloaded installer runs offline. Transfer it and its release checksum file
 
 ## Optional npx installation of Handoff
 
-`npx skills add akhilvuputuri/a-stack` hides the Handoff skills (`metadata.internal`), because a repository copy has no compiled addon. Forced with `INSTALL_INTERNAL_SKILLS=1`, the copied helper reports that the filesystem addon is unavailable.
+`npx skills add akhilvuputuri/a-stack` hides the Handoff skills (`metadata.internal`), because a repository copy has no compiled addon. Forced with `INSTALL_INTERNAL_SKILLS=1`, the copied helper reports that the filesystem addon is unavailable. The self-contained release ZIP below does include the addon, but its skills carry the same flag, so `npx skills` needs `INSTALL_INTERNAL_SKILLS=1` for that route too.
 
 Self-contained, platform-specific Handoff skill ZIPs are also built. Vercel's `skills` CLI supports direct archive URLs, agent selection, and copy mode. Once published and validated, a ZIP can be installed using:
 
 ```sh
-npx skills add RELEASE_ZIP_URL --global --agent codex --copy
+INSTALL_INTERNAL_SKILLS=1 npx skills add RELEASE_ZIP_URL --global --agent codex --copy
 ```
 
 This route is an external installer, not a second implementation of Handoff. It may download npm packages/use its own telemetry or update behavior during setup; use the downloaded Node installer for an offline installation. The direct ZIP path avoids relying on a Git repository clone. **End-to-end npx archive installation is not yet verified.** Do not install the same skill through both routes in the same scope. [Skills CLI documentation](https://github.com/vercel-labs/skills#installation-methods).

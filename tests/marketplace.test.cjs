@@ -10,7 +10,13 @@ const ROOT = path.resolve(__dirname, "..");
 // plugins/<name>/skills/<skill>/SKILL.md, the layout Claude Code, Codex and `npx skills`
 // all discover. Handoff needs the bundled native addon, which only the release installer
 // provides, so it stays in skills/ and is hidden from `npx skills`.
-const PLUGINS = ["ios-design", "workflow"];
+// Each plugin's exact skill inventory. Only workflow carries the Claude SessionStart hook.
+const PLUGIN_SKILLS = {
+  "ios-design": ["ios-design"],
+  workflow: ["adopt", "experiment", "incident", "independent-review", "journal", "preflight", "ship"],
+};
+const PLUGINS = Object.keys(PLUGIN_SKILLS);
+const HOOK_PLUGINS = ["workflow"];
 const HANDOFF_SKILLS = ["publish-handoff", "resume-handoff"];
 const marketplace = JSON.parse(
   fs.readFileSync(path.join(ROOT, ".claude-plugin/marketplace.json"), "utf8"),
@@ -78,10 +84,14 @@ test("each plugin holds named instruction-only skills under plugins/<name>/skill
     assert.match(plugin.version, /^\d+\.\d+\.\d+$/);
     assert.ok(plugin.description);
     const dir = path.join(ROOT, plugin.source);
-    const hasHook = fs.existsSync(path.join(dir, "hooks"));
-    assertInstructionOnly(dir, [".codex-plugin/plugin.json", ...(hasHook ? ["hooks/hooks.json"] : [])]);
+    const hasHook = HOOK_PLUGINS.includes(plugin.name);
+    assert.equal(fs.existsSync(path.join(dir, "hooks")), hasHook, plugin.name + ": unexpected hooks/");
+    assertInstructionOnly(dir, [
+      ".codex-plugin/plugin.json",
+      ...(hasHook ? ["hooks/hooks.json", ".codex-plugin/hooks.json"] : []),
+    ]);
     const names = skillNames(dir);
-    assert.ok(names.length > 0);
+    assert.deepEqual(names.sort(), [...PLUGIN_SKILLS[plugin.name]].sort(), plugin.name + ": skill inventory");
     for (const name of names) {
       const skill = fs.readFileSync(path.join(dir, "skills", name, "SKILL.md"), "utf8");
       assert.match(skill, new RegExp("^---\\nname: " + name + "\\ndescription: \\S"));
@@ -124,7 +134,17 @@ test("the Codex marketplace and manifests mirror the Claude marketplace", () => 
     assert.equal(manifest.version, plugin.version);
     assert.equal(manifest.description, plugin.description);
     assert.equal(manifest.skills, "./skills/");
-    assert.equal(manifest.hooks, undefined, "Codex plugin hooks are desktop-only; not used");
+    // Codex discovers hooks/hooks.json unless the manifest names hooks explicitly, and it
+    // drops the Claude hook's args. Point Codex at an explicit empty hooks file instead.
+    if (HOOK_PLUGINS.includes(plugin.name)) {
+      assert.equal(manifest.hooks, "./.codex-plugin/hooks.json");
+      const codexHooks = JSON.parse(
+        fs.readFileSync(path.join(ROOT, plugin.source, ".codex-plugin/hooks.json"), "utf8"),
+      );
+      assert.deepEqual(codexHooks, { hooks: {} });
+    } else {
+      assert.equal(manifest.hooks, undefined);
+    }
   }
 });
 
@@ -221,7 +241,9 @@ test("released versions keep the digest of their tagged content", (t) => {
       if (git(["rev-parse", "-q", "--verify", "refs/tags/" + tag]) === null) continue;
       // A plugin may move between releases, so use the source recorded at the tag itself.
       const tagged = JSON.parse(git(["cat-file", "blob", tag + ":.claude-plugin/marketplace.json"]).toString("utf8"));
-      const source = tagged.plugins.find((p) => p.name === plugin.name).source;
+      const entry = tagged.plugins.find((p) => p.name === plugin.name);
+      assert.ok(entry, tag + " exists but its marketplace does not list " + plugin.name);
+      const source = entry.source;
       assert.equal(recorded, taggedDigest(tag, source), tag + " is released; bump the version instead");
     }
   }

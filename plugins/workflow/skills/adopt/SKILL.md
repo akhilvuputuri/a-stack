@@ -34,7 +34,7 @@ Whichever ref you pin, write that actual ref in the AGENTS.md block, so that the
 
 The plugin's SessionStart hook loads the core rules into every Claude Code session, and its skills load when a task matches them.
 
-For Codex, also commit `.codex/config.toml` with `[plugins."workflow@a-stack"]` and `enabled = true`. Each contributor adds the marketplace once with `codex plugin marketplace add akhilvuputuri/a-stack@<REF>`. Codex has no project-level marketplace pin, and it doesn't run the core-rules hook, so the AGENTS.md block below carries the rules for Codex. For other agents, `npx skills add https://github.com/akhilvuputuri/a-stack/tree/<REF>` installs the skills.
+For Codex, also commit `.codex/config.toml` with `[plugins."workflow@a-stack"]` and `enabled = true`. Each contributor runs `codex plugin marketplace add akhilvuputuri/a-stack@<REF>` and then `codex plugin add workflow@a-stack` once. Enabling a plugin in project config does not install it. Codex has no project-level marketplace pin, and the Codex plugin ships no hooks, so the AGENTS.md block below carries the rules for Codex. For other agents, `npx skills add https://github.com/akhilvuputuri/a-stack/tree/<REF>` installs the skills.
 
 ## 2. Add the workflow block to AGENTS.md
 

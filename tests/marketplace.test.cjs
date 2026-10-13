@@ -6,9 +6,11 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const ROOT = path.resolve(__dirname, "..");
-// Only instruction-only skills ship through the Claude Code marketplace. Handoff needs the
+// Only instruction-only plugins ship through the Claude Code marketplace. Handoff needs the
 // bundled native addon, which the release installer provides and a git-sourced plugin cannot.
-const PLUGIN_SKILLS = ["ios-design"];
+// A "skill" plugin is one skill folder; a "bundle" plugin holds several skills plus a hook.
+const PLUGINS = { "ios-design": "skill", workflow: "bundle" };
+const PLUGIN_SKILLS = Object.keys(PLUGINS);
 const marketplace = JSON.parse(
   fs.readFileSync(path.join(ROOT, ".claude-plugin/marketplace.json"), "utf8"),
 );
@@ -31,8 +33,29 @@ test("marketplace lists exactly the allowlisted instruction-only skills", () => 
   );
 });
 
-test("each plugin entry points at its skill folder with matching name and no runtime", () => {
-  for (const plugin of marketplace.plugins) {
+function assertInstructionOnly(dir, allowed) {
+  for (const file of walk(dir)) {
+    const info = fs.lstatSync(file);
+    assert.ok(!info.isSymbolicLink(), "plugin files cannot be symlinks: " + file);
+    const relative = path.relative(dir, file).split(path.sep).join("/");
+    assert.ok(
+      info.isDirectory() || file.endsWith(".md") || allowed.includes(relative),
+      "unexpected plugin file: " + file,
+    );
+  }
+}
+
+// Skill frontmatter can declare hooks, tools and other behavior that runs when the skill
+// is invoked. Marketplace skills are instructions only, so allow exactly name and description.
+function assertPlainFrontmatter(text, name) {
+  const match = /^---\n([\s\S]*?)\n---\n/.exec(text);
+  assert.ok(match, name + ": SKILL.md needs frontmatter");
+  const keys = match[1].split("\n").map((line) => line.split(":")[0]);
+  assert.deepEqual(keys, ["name", "description"], name + ": frontmatter may hold only name and description");
+}
+
+test("each skill plugin points at its skill folder with matching name and no runtime", () => {
+  for (const plugin of marketplace.plugins.filter((p) => PLUGINS[p.name] === "skill")) {
     assert.equal(plugin.source, "./skills/" + plugin.name);
     assert.deepEqual(plugin.skills, ["."]);
     assert.match(plugin.version, /^\d+\.\d+\.\d+$/);
@@ -40,11 +63,44 @@ test("each plugin entry points at its skill folder with matching name and no run
     const dir = path.join(ROOT, plugin.source);
     const skill = fs.readFileSync(path.join(dir, "SKILL.md"), "utf8");
     assert.match(skill, new RegExp("^---\\nname: " + plugin.name + "\\n"));
-    for (const file of walk(dir)) {
-      const info = fs.lstatSync(file);
-      assert.ok(!info.isSymbolicLink(), "plugin files cannot be symlinks: " + file);
-      assert.ok(info.isDirectory() || file.endsWith(".md"), "unexpected plugin file: " + file);
+    assertPlainFrontmatter(skill, plugin.name);
+    assertInstructionOnly(dir, []);
+  }
+});
+
+// Claude Code caps SessionStart hook output at 10,000 characters; beyond that the core
+// rules would be replaced by a file path and a 2,000-character preview.
+const HOOK_OUTPUT_LIMIT = 10000;
+
+test("each bundle plugin has named skills and a hook that only loads CORE.md", () => {
+  for (const plugin of marketplace.plugins.filter((p) => PLUGINS[p.name] === "bundle")) {
+    assert.equal(plugin.source, "./plugins/" + plugin.name);
+    assert.equal(plugin.skills, undefined, "bundles use the default skills/ scan");
+    assert.match(plugin.version, /^\d+\.\d+\.\d+$/);
+    assert.ok(plugin.description);
+    const dir = path.join(ROOT, plugin.source);
+    assertInstructionOnly(dir, ["hooks/hooks.json"]);
+    const names = fs
+      .readdirSync(path.join(dir, "skills"), { withFileTypes: true })
+      .filter((entry) => entry.isDirectory())
+      .map((entry) => entry.name);
+    assert.ok(names.length > 0);
+    for (const name of names) {
+      const skill = fs.readFileSync(path.join(dir, "skills", name, "SKILL.md"), "utf8");
+      assert.match(skill, new RegExp("^---\\nname: " + name + "\\ndescription: \\S"));
+      assertPlainFrontmatter(skill, name);
     }
+    const core = fs.readFileSync(path.join(dir, "CORE.md"), "utf8");
+    assert.ok(core.length < HOOK_OUTPUT_LIMIT, "CORE.md must stay under the hook output cap");
+    for (const name of names) assert.ok(core.includes("`" + name + "`"), "CORE.md must list " + name);
+    const hooks = JSON.parse(fs.readFileSync(path.join(dir, "hooks/hooks.json"), "utf8"));
+    assert.deepEqual(hooks, {
+      hooks: {
+        SessionStart: [
+          { hooks: [{ type: "command", command: "cat", args: ["${CLAUDE_PLUGIN_ROOT}/CORE.md"] }] },
+        ],
+      },
+    });
   }
 });
 

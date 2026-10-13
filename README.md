@@ -7,12 +7,34 @@ Akhil's lean collection of coding and AI workflow skills. Start with **Handoff**
 | `publish-handoff` | Select one topic, draft/save a local handoff, or publish an updated revision. |
 | `resume-handoff` | Retrieve/list handoffs, check relevant current state, and explain the next step. Implement when the user asks. |
 | `ios-design` | Audit or refine native iPhone/iPad interfaces using a source-linked digest of Apple's Human Interface Guidelines: Liquid Glass, Dynamic Type, accessibility, components, writing, app icons, and reading/offline-first patterns. Instructions only; no runtime. |
+| `workflow` (plugin) | Akhil's engineering workflow for coding agents. Always-on core rules plus skills: `preflight`, `independent-review`, `ship`, `journal`, `incident`, `experiment`, `adopt`. Instructions plus one SessionStart hook; no runtime. |
 
-The release installer below covers the two Handoff skills. `ios-design` has no helper or runtime, and installs as a Claude Code plugin or by copying the folder.
+The release installer below covers the two Handoff skills. `ios-design` and `workflow` have no helper or runtime, and install as Claude Code plugins (or, for `ios-design`, by copying the folder).
+
+## Engineering workflow for every repository
+
+`plugins/workflow` centralises the development workflow that grew up in chief-agent, so other repositories can apply it without copying it. It has two layers:
+
+- **Core rules** ([`CORE.md`](plugins/workflow/CORE.md)): fresh-state preflight, capability checks, independent exact-head review, verified delivery, evidence labels, records and hygiene. A SessionStart hook prints the file, which puts it into every Claude Code session's context, including after `/clear` and compaction.
+- **Skills**, which load when a task reaches that stage:
+
+  | Skill | Use |
+  | --- | --- |
+  | `preflight` | Fetch and read from `origin/main`, use a worktree, record capabilities, classify the deployment shape |
+  | `independent-review` | Reviewer prompt template, review contract, verdict recording |
+  | `ship` | Exact-head merge, release watch by SHA, versioning, tags, release notes |
+  | `journal` | Journal entry and index templates, evidence rules, release closure |
+  | `incident` | Sources of truth, first pass, follow the failing stage, close the loop |
+  | `experiment` | Frozen baseline, one mechanism at a time, honest reporting |
+  | `adopt` | Set up a repository: pin the plugin, add the AGENTS.md block, fill in bindings |
+
+A repository adopts it by pinning `workflow@a-stack` in its `.claude/settings.json` and putting [the workflow block](plugins/workflow/skills/adopt/agents-block.md) at the top of its AGENTS.md. The block links `CORE.md` at the pinned tag, repeats the non-negotiable rules for agents that only read AGENTS.md, and holds the repository's **bindings**: its check commands, reviewer, merge authority, release verification, record paths and exceptions. Ask an agent to "adopt the a-stack workflow in this repo" and the `adopt` skill does this.
+
+The current release tag is `workflow--v0.1.0`. A project that uses several a-stack plugins declares the marketplace once, with one `ref`. Any tag contains every plugin as of that commit, so pin the newest tag that carries the versions you want, and only a tag at which every plugin version you use is itself tagged. The `adopt` skill handles an existing pin without downgrading other plugins.
 
 ## Claude Code plugin marketplace
 
-This repository is a Claude Code plugin marketplace (`.claude-plugin/marketplace.json`) named `a-stack`. It lists only instruction-only skills: currently `ios-design`. Handoff isn't distributed as a plugin, because its native addon is built per platform and one marketplace entry can't choose between builds. It stays on the release installer.
+This repository is a Claude Code plugin marketplace (`.claude-plugin/marketplace.json`) named `a-stack`. It lists only instruction-only plugins: currently `ios-design` and `workflow`. Handoff isn't distributed as a plugin, because its native addon is built per platform and one marketplace entry can't choose between builds. It stays on the release installer.
 
 To install for yourself:
 
@@ -35,11 +57,11 @@ To make a repository depend on it, commit this to that repository's `.claude/set
 Claude Code registers the marketplace once a contributor trusts the folder. The skill is invoked as `/ios-design:ios-design` and also loads when a task matches it.
 
 Claude Code installs a new copy only when the plugin's `version` changes.
-- Every change to `skills/ios-design` bumps `version` in `.claude-plugin/marketplace.json` and records the folder's digest for that version in `.claude-plugin/releases.json`.
-- The reviewed merge commit is tagged `ios-design--v<version>`, following Claude Code's `<plugin>--v<version>` convention, as soon as it merges.
+- Every change to a plugin's folder (`skills/ios-design`, `plugins/workflow`) bumps its `version` in `.claude-plugin/marketplace.json` and records the folder's digest for that version in `.claude-plugin/releases.json`.
+- The reviewed merge commit is tagged `<plugin>--v<version>` (for example `ios-design--v<version>`), following Claude Code's `<plugin>--v<version>` convention, as soon as it merges.
 - A project moves to a release by changing its `ref` to that tag.
 
-`tests/marketplace.test.cjs` fails if the skill changes without a new version, or if the README's pinned tag doesn't match the version.
+`tests/marketplace.test.cjs` fails if a plugin changes without a new version, or if the README's pinned tag doesn't match the version.
 
 This README provides no project-level pin for Codex. Install the same tagged folder into its user skills directory, replacing any older copy. Codex discovery of `~/.agents/skills` has not been verified for this skill.
 

@@ -1,19 +1,41 @@
 # Maintaining a-stack
 
-Keep this repository a small collection of reusable, independent skills. Handoff is the local handoff helper; new skills need not depend on it.
+## Workflow
 
-Use Node 22+ built-in libraries and the bundled filesystem addon for Handoff. Runtime handoffs, drafts, and work context belong outside this repository and application checkouts. Examples and tests must be synthetic. Packaging and installation use explicit source allowlists and never read the runtime store.
+This repository follows the a-stack engineering workflow from its own source, [plugins/workflow/CORE.md](plugins/workflow/CORE.md), at the checked-out revision. Read it, and the workflow skills under `plugins/workflow/skills/`, before starting work. The bindings below supply this repository's specifics.
 
-The schema is authoritative. Keep the dependency-free validator, renderer, skills, and command documentation consistent with it. Preserve local-only behavior, immutable revisions, explicit conflicts, project isolation, and the boundary between evidence and executable authority.
+Non-negotiable even without the plugin:
 
-Run `npm run build:native` and `npm test` for helper changes. Validate changed skills with the available skill validator. Document actual tested environments; do not infer another agent's compatibility from local helper tests.
+- Fetch origin and read from `origin/main` before exploring or changing anything. Never reset or clean a shared or dirty checkout. Work on a branch or worktree.
+- Every change gets an independent reviewer that did not write it, with an explicit APPROVE or REQUEST CHANGES for the exact head SHA. Re-review after every fix.
+- A task ends at a verified merge, tag or release, or at a named blocker.
+- Label claims as reported, tested, measured, hypothesis or deferred. Never invent results.
+- Commit as the human developer's git identity, with no agent author or `Co-Authored-By` trailer. Keep secrets, real handoffs and private data out of the repository, PRs and logs.
 
-## Independent review is required
+### Workflow bindings
 
-Follow [the development workflow](docs/development.md) and [review contract](REVIEW.md). Implement and test on a branch, then open a reviewable PR. Obtain review from a separate agent that did not author the change, using the most capable available reviewer model; disclose any capacity fallback and the actual model when known. Give it requirements, the base and exact head SHA, the actual diff and relevant source. Ask for an open assessment without supplying the intended verdict. Documentation-only changes may receive a focused review; code, schema, and skill changes require review of their behavior and affected guarantees.
+- **Checks:** `npm run build:native`; `npm test`; `claude plugin validate .` for marketplace or plugin changes; validate changed skill frontmatter. Build and test the release artifacts when setup changes. Do not run routinely: nothing paid.
+- **Reviewer:** the most capable available model (Opus 5.5 in Claude sessions). Documentation-only changes may get a focused review. Code, schema, plugin and skill changes need review of their behavior and the guarantees they affect. Bot review: Devin Review when the PR is ready and after each push; its instructions are in REVIEW.md.
+- **Merge authority:** merge after current-head independent approval, passing CI and a completed Devin review. If a reviewer or integration is unavailable, report the missing review and leave the PR open.
+- **Release:** plugins are released by tagging the reviewed merge commit `<plugin>--v<version>`. Every plugin change bumps its version and records the folder digest in `.claude-plugin/releases.json`. Released digests are immutable. Handoff releases are built from the reviewed merged source per [docs/development.md](docs/development.md).
+- **Records:** [docs/validation.md](docs/validation.md) records scope, findings and their disposition, reviewed SHA, checks, verdict and remaining limits. No separate journal.
+- **Diagnostics:** none. The repository has no deployed service.
+- **Exceptions:** none.
 
-Require an explicit APPROVE or REQUEST CHANGES verdict for the current PR head. Resolve actionable findings, add regression checks when warranted, and obtain renewed review after fixes or later material changes. CI, independent skill evaluations, and Devin Review complement this independent implementation review; none replaces it.
+## Repository rules
 
-Devin Review should run when the PR is ready and after each push. Inspect its current-head findings, fix confirmed defects, and verify completion rather than treating enrollment or a trigger comment as a completed review. Its instructions live in REVIEW.md. Never enable automatic code edits or broaden account/repository permissions incidentally.
+Keep this repository a small collection of reusable skills and plugins. Handoff is the local handoff helper, and nothing else needs to depend on it. The `workflow` plugin holds generic engineering workflow. Repository-specific rules belong in each consuming repository's bindings, not here.
 
-Record scope, findings/disposition, reviewed SHA, checks, verdict, and remaining limits in `docs/validation.md` or the PR. Checkpoint commits and PR pushes are permitted for review; merge or publish a release only after current-head independent approval, passing checks, and completion of the requested Devin review. If a reviewer or integration is unavailable, report the missing review and leave the PR open. Do not claim review or merge approval from a previous revision.
+Use Node 22+ built-in libraries and the bundled filesystem addon for Handoff. Runtime handoffs, drafts and work context belong outside this repository and application checkouts. Examples and tests must be synthetic. Packaging and installation use explicit source allowlists and never read the runtime store.
+
+The schema is authoritative. Keep the dependency-free validator, renderer, skills and command documentation consistent with it. Preserve local-only behavior, immutable revisions, explicit conflicts, project isolation, and the boundary between evidence and executable authority.
+
+Marketplace plugins are instructions only: Markdown, plus the workflow plugin's single SessionStart hook, which prints `CORE.md`. Keep `CORE.md` under the 10,000-character hook output cap. Document the environments you actually tested, and do not infer another agent's compatibility from local helper tests.
+
+## Independent review
+
+Follow [the development workflow](docs/development.md), [the review contract](REVIEW.md) and the `independent-review` skill. Give the reviewer the requirements, the base and exact head SHA, the actual diff and the relevant source. Ask for an open assessment without supplying the intended verdict. Disclose any capacity fallback and the actual model when known.
+
+Devin Review should run when the PR is ready and after each push. Inspect its current-head findings, fix confirmed defects and verify completion. Enrollment or a trigger comment is not a completed review. Never enable automatic code edits or broaden account or repository permissions incidentally.
+
+Checkpoint commits and PR pushes are permitted for review. Do not claim review or merge approval from a previous revision.

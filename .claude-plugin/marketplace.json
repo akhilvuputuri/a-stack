@@ -9,6 +9,12 @@
       "description": "Audit and refine native iPhone and iPad interfaces using a source-linked digest of Apple's Human Interface Guidelines",
       "version": "0.1.0",
       "skills": ["."]
+    },
+    {
+      "name": "workflow",
+      "source": "./plugins/workflow",
+      "description": "Engineering workflow for coding agents: fresh-state preflight, independent exact-head review, verified release, evidence-labelled journal, incident and experiment method, and repository adoption",
+      "version": "0.1.0"
     }
   ]
 }

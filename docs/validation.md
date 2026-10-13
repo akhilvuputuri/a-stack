@@ -1,5 +1,47 @@
 # Validation status
 
+## Workflow plugin — 14 October 2026
+
+- **Change:** adds `workflow` 0.1.0, a bundle plugin at `./plugins/workflow`. It extracts the generic engineering workflow from chief-agent's AGENTS.md, REVIEW.md and its cloud-workflow, portable-development, releases, journal, troubleshooting and development-process docs, as read from chief-agent `origin/main` `e4b71ad`. It also folds in owner preferences recorded in Claude memory: commit identity, foreground-only reviewers, shared-worktree hazards, and docs shipping with every change. Chief-specific architecture, product rules and infrastructure stay in chief-agent.
+  - **Contents:** `CORE.md` holds the always-on rules (5,286 characters). `hooks/hooks.json` is an exec-form SessionStart hook that runs `cat ${CLAUDE_PLUGIN_ROOT}/CORE.md`, with no matcher, so it fires on startup, resume, clear and compact. There are seven skills: `preflight`, `independent-review` (with its reviewer prompt and review contract), `ship`, `journal` (with entry and index templates), `incident`, `experiment` and `adopt` (with the AGENTS.md block).
+  - **Adoption:** a repository pins the plugin in its `.claude/settings.json` and puts the workflow block at the top of its AGENTS.md. The block names the pinned tag, repeats five non-negotiable rules for agents that only read AGENTS.md, and holds the repository's bindings.
+  - **This repository:** a-stack's own AGENTS.md now follows the workflow from its in-repo source and states its bindings.
+- **Tests:** `tests/marketplace.test.cjs` now distinguishes `skill` plugins (unchanged rules for `ios-design`) from `bundle` plugins. For a bundle it requires:
+  - the source is `./plugins/<name>`, with the default `skills/` scan
+  - only Markdown files plus `hooks/hooks.json`, and no symlinks
+  - each `skills/<dir>/SKILL.md` declares `name: <dir>` and a description
+  - `CORE.md` stays under the 10,000-character hook output cap and lists every skill
+  - the hook config is exactly the single `cat CORE.md` hook
+
+  The workflow digest is recorded for 0.1.0.
+- **Checks:**
+  - `npm test` passes 42/42.
+  - `claude plugin validate .` and `claude plugin validate ./plugins/workflow` pass (Claude Code 2.1.283).
+  - In an isolated `CLAUDE_CONFIG_DIR`, `claude plugin marketplace add <checkout>` plus `claude plugin install workflow@a-stack` installed it. `claude plugin details` lists 7 skills and 1 SessionStart hook, with about 575 tokens of always-on skill-description context. The details view does not count the hook's output.
+  - With `--plugin-dir plugins/workflow` and `--debug-file`, the debug log shows `Loaded 7 skills` and `Hook SessionStart:startup (SessionStart) success`, carrying the full CORE.md text as plain-text hook output.
+- **Mutation checks:** the test suite fails for each of these: an edit to CORE.md without a version bump, a changed hook command, an added shell script, and a renamed skill folder. The clean tree passes.
+- **Not verified:**
+  - **Model context:** that the model sees the hook output in an authenticated session. The CLI in the build sandbox was not logged in, so no model turn ran. The debug log and Claude Code's documented SessionStart plain-stdout behavior support it.
+  - **Cloud sessions:** that cloud sessions (claude.ai/code) install project-pinned plugins and run their hooks.
+  - **Folder trust:** automatic registration when a contributor trusts a repository.
+  - **Other agents:** Codex or other agents. For those, the AGENTS.md block is the supported path.
+- **Independent review of `1ef612b` (Opus 5.5):** REQUEST CHANGES.
+  - **What it reproduced:** validation, the marketplace tests, `npm pack --dry-run`, the hook format against the Claude Code docs, fidelity to the chief-agent sources, and that ios-design's guarantees are preserved.
+  - **Blocking finding:** the review skill allowed a backgrounded reviewer "when your next step does not depend on it", which is weaker than the owner's foreground-only rule.
+  - **Non-blocking findings:**
+    - Skill frontmatter could declare `hooks:` and still pass the tests after a version bump. This gap already existed for ios-design.
+    - The adopt skill could overwrite an existing a-stack `ref` and downgrade another plugin, or pin a tag whose versions are not all released.
+    - The AGENTS.md block said "behavior change" where CORE.md says "every change".
+    - The journal index template linked a `TEMPLATE.md` that the skill never told agents to create.
+- **Follow-up:**
+  - The reviewer always runs in the foreground.
+  - A test now requires every marketplace SKILL.md frontmatter to hold exactly `name` and `description`. Mutation check: adding `hooks: {}` to a skill fails the structural test.
+  - The adopt skill keeps or upgrades an existing ref without downgrading, pins only fully released tags, and writes the actual ref into the block, now parameterised as `<REF>`. The README states the same rule.
+  - The block wording now matches CORE.md.
+  - The journal skill copies the entry template to `TEMPLATE.md` when it creates a journal.
+  - The unreleased 0.1.0 digest is re-recorded. `npm test` passes 42/42 and `claude plugin validate .` passes.
+- **Release:** pending re-review. The tag `workflow--v0.1.0` will be cut from the reviewed merge commit.
+
 ## Claude Code plugin marketplace — 13 October 2026
 
 - **Change:** a-stack is now a Claude Code plugin marketplace (`.claude-plugin/marketplace.json`, named `a-stack`). It lists only instruction-only skills: currently `ios-design` 0.1.0, sourced from `./skills/ios-design`, with `skills: ["."]` so the plugin root holds `SKILL.md` directly.

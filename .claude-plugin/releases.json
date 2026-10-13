@@ -1,5 +1,8 @@
 {
   "ios-design": {
     "0.1.0": "b974e2357ffdee7bdb3d615ab730ec2de18c90de6bd5372b1049b6c28e90362d"
+  },
+  "workflow": {
+    "0.1.0": "ba1aa6832c2aa7d1888e3f9130c2814b0e3bb3a828ee910b193d0d18e935164a"
   }
 }

@@ -18,6 +18,7 @@
     "native/*/posix.node",
     "schema",
     "skills",
+    "plugins",
     "docs",
     "AGENTS.md",
     "REVIEW.md",

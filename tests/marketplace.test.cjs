@@ -4,6 +4,7 @@ const assert = require("node:assert/strict");
 const crypto = require("node:crypto");
 const fs = require("node:fs");
 const path = require("node:path");
+const { spawnSync } = require("node:child_process");
 const ROOT = path.resolve(__dirname, "..");
 // Only instruction-only skills ship through the Claude Code marketplace. Handoff needs the
 // bundled native addon, which the release installer provides and a git-sourced plugin cannot.
@@ -13,6 +14,7 @@ const marketplace = JSON.parse(
 );
 function walk(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
+    if (entry.name === ".DS_Store") continue; // Finder metadata; git-ignored and never shipped.
     const full = path.join(dir, entry.name);
     out.push(full);
     if (entry.isDirectory()) walk(full, out);
@@ -80,7 +82,52 @@ test("each plugin's content matches the digest recorded for its version", () => 
       actual,
       plugin.name + " changed: bump its version and record " + actual + " for it",
     );
-    const digests = Object.values(recorded);
-    assert.equal(new Set(digests).size, digests.length, "each version needs distinct content");
+  }
+});
+
+// Released versions are immutable: once <name>--v<version> is tagged, its recorded digest
+// must match the tagged files. Untagged (unreleased) versions may still change.
+// Reads raw blobs with cat-file, so no repository-configured filters or hooks run.
+function git(args) {
+  const result = spawnSync("git", ["-c", "core.fsmonitor=false", ...args], {
+    cwd: ROOT,
+    encoding: "buffer",
+    maxBuffer: 64 * 1024 * 1024,
+  });
+  return result.status === 0 ? result.stdout : null;
+}
+function taggedDigest(tag, source) {
+  const prefix = source.replace(/^\.\//, "");
+  const listing = git(["ls-tree", "-r", "-z", tag, "--", prefix]);
+  if (listing === null) return null;
+  const files = listing
+    .toString("utf8")
+    .split("\0")
+    .filter(Boolean)
+    .map((line) => {
+      const [meta, file] = line.split("\t");
+      return { type: meta.split(" ")[1], file };
+    });
+  assert.ok(files.every((entry) => entry.type === "blob"), tag + " contains non-file entries");
+  const hash = crypto.createHash("sha256");
+  for (const { file } of files.sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0))) {
+    hash.update(path.posix.relative(prefix, file) + "\0");
+    hash.update(git(["cat-file", "blob", tag + ":" + file]));
+    hash.update("\0");
+  }
+  return hash.digest("hex");
+}
+
+test("released versions keep the digest of their tagged content", (t) => {
+  if (git(["rev-parse", "--is-inside-work-tree"]) === null) return t.skip("not a git checkout");
+  const releases = JSON.parse(
+    fs.readFileSync(path.join(ROOT, ".claude-plugin/releases.json"), "utf8"),
+  );
+  for (const plugin of marketplace.plugins) {
+    for (const [version, recorded] of Object.entries(releases[plugin.name] || {})) {
+      const tag = plugin.name + "--v" + version;
+      if (git(["rev-parse", "-q", "--verify", "refs/tags/" + tag]) === null) continue;
+      assert.equal(recorded, taggedDigest(tag, plugin.source), tag + " is released; bump the version instead");
+    }
   }
 });

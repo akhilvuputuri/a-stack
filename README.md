@@ -8,7 +8,49 @@ Akhil's lean collection of coding and AI workflow skills. Start with **Handoff**
 | `resume-handoff` | Retrieve/list handoffs, check relevant current state, and explain the next step. Implement when the user asks. |
 | `ios-design` | Audit or refine native iPhone/iPad interfaces using a source-linked digest of Apple's Human Interface Guidelines: Liquid Glass, Dynamic Type, accessibility, components, writing, app icons, and reading/offline-first patterns. Instructions only; no runtime. |
 
-The release installer below covers the two Handoff skills. `ios-design` has no helper or runtime; install it by copying `skills/ios-design` into your agent's skills directory (for example `~/.claude/skills/ios-design` or `~/.agents/skills/ios-design`).
+The release installer below covers the two Handoff skills. `ios-design` has no helper or runtime, and installs as a Claude Code plugin or by copying the folder.
+
+## Claude Code plugin marketplace
+
+This repository is a Claude Code plugin marketplace (`.claude-plugin/marketplace.json`) named `a-stack`. It lists only instruction-only skills: currently `ios-design`. Handoff isn't distributed as a plugin, because its native addon is built per platform and one marketplace entry can't choose between builds. It stays on the release installer.
+
+To install for yourself:
+
+```sh
+claude plugin marketplace add akhilvuputuri/a-stack
+claude plugin install ios-design@a-stack
+```
+
+To make a repository depend on it, commit this to that repository's `.claude/settings.json`, pinned to a release tag:
+
+```json
+{
+  "extraKnownMarketplaces": {
+    "a-stack": { "source": { "source": "github", "repo": "akhilvuputuri/a-stack", "ref": "ios-design--v0.1.0" } }
+  },
+  "enabledPlugins": { "ios-design@a-stack": true }
+}
+```
+
+Claude Code registers the marketplace once a contributor trusts the folder. The skill is invoked as `/ios-design:ios-design` and also loads when a task matches it.
+
+Claude Code installs a new copy only when the plugin's `version` changes.
+- Every change to `skills/ios-design` bumps `version` in `.claude-plugin/marketplace.json` and records the folder's digest for that version in `.claude-plugin/releases.json`.
+- The reviewed merge commit is tagged `ios-design--v<version>`, following Claude Code's `<plugin>--v<version>` convention, as soon as it merges.
+- A project moves to a release by changing its `ref` to that tag.
+
+`tests/marketplace.test.cjs` fails if the skill changes without a new version, or if the README's pinned tag doesn't match the version.
+
+This README provides no project-level pin for Codex. Install the same tagged folder into its user skills directory, replacing any older copy. Codex discovery of `~/.agents/skills` has not been verified for this skill.
+
+```sh
+tmp=$(mktemp -d)
+git clone --depth 1 --branch ios-design--v0.1.0 https://github.com/akhilvuputuri/a-stack "$tmp"
+mkdir -p ~/.agents/skills && rm -rf ~/.agents/skills/ios-design && cp -R "$tmp/skills/ios-design" ~/.agents/skills/
+rm -rf "$tmp"
+```
+
+For other agents, point them at `skills/ios-design/SKILL.md` from that tag.
 
 **Node 22+ is the only runtime requirement.** Release artifacts bundle a small Node-API filesystem addon to retain directory-relative reads, atomic writes, and store locking on macOS/Linux. No Python, compiler, dependency installation, daemon, MCP server, or model service is needed to use an installed skill. Windows is unsupported in this version. Git is optional for local code metadata; no Git is required to install or use discussion-only handoffs.
 

@@ -1,8 +1,39 @@
 # Validation status
 
+## Claude Code plugin marketplace — 13 October 2026
+
+- **Change:** a-stack is now a Claude Code plugin marketplace (`.claude-plugin/marketplace.json`, named `a-stack`). It lists only instruction-only skills: currently `ios-design` 0.1.0, sourced from `./skills/ios-design`, with `skills: ["."]` so the plugin root holds `SKILL.md` directly.
+- **Handoff excluded:** Handoff stays on the release installer. Its native addon is built per platform, and one marketplace entry can't select a build.
+- **New test:** `tests/marketplace.test.cjs` enforces the allowlist, the source path, the skill name, the version format, and that plugin folders contain only Markdown and no symlinks. A mutation check that added `publish-handoff` to the marketplace made both tests fail.
+- **Checks:**
+  - `claude plugin validate .` passes (Claude Code 2.1.283).
+  - In an isolated `CLAUDE_CONFIG_DIR`:
+    - `claude plugin marketplace add <checkout>` plus `claude plugin install ios-design@a-stack` installed the plugin at user scope with `SKILL.md` and all eight references. `claude plugin details` reports one skill and about 115 tokens of always-on context.
+    - With `--scope project`, the CLI wrote the `extraKnownMarketplaces`/`enabledPlugins` shape the README documents, and listed the plugin as enabled at project scope.
+  - `npm test` passes 38/38.
+- **Independent review of `b6ec2ac`:** REQUEST CHANGES.
+  - **What it reproduced:** validation, a local install, a GitHub install pinned with `ref` (at user and project scope), 38/38 tests, and the mutation checks.
+  - **Blocking finding:** moving a project to a new `ref` without bumping the plugin's `version` leaves users on the cached copy.
+  - **Low findings:** the Handoff exclusion was worded too absolutely, and the Codex copy steps were fragile and unverified.
+  - **Follow-up:** adopts the `<plugin>--v<version>` tag convention, documents the bump rule, and adds a README-tag/version test. Codex steps now replace the folder, use a temporary clone, and say Codex discovery is unverified.
+- **Independent re-review of `1352897`:** APPROVE. Its non-blocking notes: the version-bump rule was enforced only by documentation, the Codex "no project pin" sentence was unverified, and the temporary clone wasn't cleaned up.
+- **Devin Review of `1352897`:**
+  - **Bug:** "fresh Codex installs miss the skill". This targeted the earlier snippet, which lacked `mkdir -p`. I ran the current snippet's steps against an empty temporary `HOME`, cloning the `claude-plugin-marketplace` branch because the tag didn't exist yet. It installed `SKILL.md` and all references, and a second run removed a planted stale file.
+  - **Flag:** version bumps rely on discipline.
+- **Follow-up:**
+  - `.claude-plugin/releases.json` records a SHA-256 digest of the skill folder for each version, and a test requires the current content to match the current version's digest. Mutation checks: a content change without a bump fails; a bump without a recorded digest fails.
+  - The Codex wording is softened, and the snippet removes its temporary clone.
+- **Independent re-review of `43cc615`:** APPROVE. It reproduced the digest independently in Python and confirmed byte stability (all files mode 100644, no `.gitattributes`). Notes: the distinct-digest rule blocked legitimate reverts, a Finder `.DS_Store` broke the tests locally, and the Codex run record didn't say which ref it used.
+- **Devin Review of `43cc615`:** one bug. Editing the skill and overwriting the same version's digest would pass, leaving users on a cached copy.
+- **Follow-up:**
+  - Released versions are now immutable. When the tag `<name>--v<version>` exists, a test recomputes that version's digest from the tagged git blobs (`ls-tree` and `cat-file`, with fsmonitor disabled and no filters) and requires it to equal the recorded digest. CI checks out full history so tags are present.
+  - Mutation check with a temporary local tag: the clean state passes, which also shows the git-based and file-based digests agree; overwriting the released digest fails. The tag was deleted afterwards.
+  - The distinct-digest rule is removed, `.DS_Store` is ignored, and the Codex run record now names the branch it used.
+- **Not verified:** automatic registration when a contributor trusts a repository whose committed settings declare the marketplace. This happens at interactive session start and was not exercised. Installing from GitHub at a tag needs the tag to exist; `ios-design--v0.1.0` will be cut from the reviewed merge commit.
+
 ## ios-design reader theme scope — 13 October 2026
 
-- **Change:** follow-up to the HIG pass, from the reviewer's optional suggestion. As finally merged, `content-apps.md` recommends:
+- **Change:** follow-up to the HIG pass, from the reviewer's optional suggestion. As of the PR's final head (`5b8b838`, merged as `bedb8b4`), `content-apps.md` recommends:
   - a `.fullScreenCover` reader with `.preferredColorScheme` applied inside it
   - `.preferredColorScheme` inside every sheet the reader presents
   - for UIKit, a full-screen `UINavigationController` carrying `overrideUserInterfaceStyle`

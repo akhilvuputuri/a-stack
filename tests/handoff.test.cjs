@@ -869,6 +869,21 @@ test("data directory keeps an existing a-stack store and environment variable", 
   assert.equal(result.status, 0, result.stderr);
   assert.equal(JSON.parse(result.stdout).record.revision_id, s.revision_id);
 });
+test("explicit data directory never reads the default locations", (t) => {
+  const f = fixture(t),
+    home = path.join(f.base, "blocked-home");
+  fs.mkdirSync(home);
+  // A file where ~/.local should be makes any lookup of the default store fail.
+  fs.writeFileSync(path.join(home, ".local"), "");
+  const env = { ...f.env, HOME: home, HANDOFF_DATA_DIR: "", ASTACK_DATA_DIR: "" };
+  f.cli(["project"], { env });
+  const version = spawnSync(
+    process.execPath,
+    [path.join(ROOT, "tools/handoff.cjs"), "--version"],
+    { env, encoding: "utf8" },
+  );
+  assert.equal(version.status, 0, version.stderr);
+});
 test("installer writes the Handoff marker and replaces a legacy-marked install", (t) => {
   const f = fixture(t),
     target = path.join(f.base, "marked"),

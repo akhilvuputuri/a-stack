@@ -20,6 +20,8 @@ claude plugin install workflow@skills
 claude plugin install ios-design@skills
 ```
 
+If you added this marketplace under its former name, `a-stack`, remove it first with `claude plugin marketplace remove a-stack`; installed `<plugin>@a-stack` plugins go with it.
+
 **Codex** (CLI plugin marketplace):
 
 ```sh
@@ -141,7 +143,7 @@ The helper makes no network calls. Local Git metadata reads deny transport proto
 
 ## Develop
 
-Development requires Node 22+, a C compiler, and locally available Node headers. Compiled Node-API artifacts work across supported Node versions on the same platform/architecture. Building never downloads headers or dependencies. If the header location is unusual, set `ASTACK_NODE_HEADERS` to the directory containing `node_api.h`.
+Development requires Node 22+, a C compiler, and locally available Node headers. Compiled Node-API artifacts work across supported Node versions on the same platform/architecture. Building never downloads headers or dependencies. If the header location is unusual, set `HANDOFF_NODE_HEADERS` to the directory containing `node_api.h`.
 
 ```sh
 npm run build:native

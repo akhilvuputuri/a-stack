@@ -872,7 +872,7 @@ function getRecord(store, handoff, revision) {
 }
 function parse(argv) {
   const opts = {
-    data_dir: dataDir(),
+    data_dir: null,
     project: process.cwd(),
     path: [],
     predecessor: [],
@@ -995,6 +995,9 @@ function run(args) {
       ? render(record)
       : { valid: true, schema_version: 1 };
   }
+  // Resolve the default only when no directory was given, so an explicit --data-dir never
+  // depends on reading the default locations.
+  args.data_dir ??= dataDir();
   const project = projectIdentity(args.project),
     store = new Store(args.data_dir, project);
   return store.locked(

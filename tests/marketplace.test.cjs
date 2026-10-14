@@ -35,7 +35,7 @@ function walk(dir, out = []) {
 }
 
 test("marketplace lists exactly the allowlisted instruction-only skills", () => {
-  assert.equal(marketplace.name, "a-stack");
+  assert.equal(marketplace.name, "skills");
   assert.ok(marketplace.owner && marketplace.owner.name);
   assert.deepEqual(
     marketplace.plugins.map((plugin) => plugin.name).sort(),

@@ -5,7 +5,7 @@ Paste this at the top of the repository's AGENTS.md and replace each `<…>`.
 ```markdown
 ## Workflow
 
-This repository follows the [a-stack engineering workflow](https://github.com/akhilvuputuri/a-stack/blob/<REF>/plugins/workflow/CORE.md), pinned to marketplace ref `<REF>` (normally `workflow--v<VERSION>`; see the adopt skill when several a-stack plugins share the ref). Claude Code loads it through the `workflow@a-stack` plugin pinned in `.claude/settings.json`. Other agents should read the linked CORE.md at that tag before starting work. The bindings below supply this repository's specifics and win where they are more specific.
+This repository follows the [skills engineering workflow](https://github.com/akhilvuputuri/skills/blob/<REF>/plugins/workflow/CORE.md), pinned to marketplace ref `<REF>` (normally `workflow--v<VERSION>`; see the adopt skill when several plugins from this marketplace share the ref). Claude Code loads it through the `workflow@skills` plugin pinned in `.claude/settings.json`. Other agents should read the linked CORE.md at that tag before starting work. The bindings below supply this repository's specifics and win where they are more specific.
 
 Non-negotiable even without the plugin:
 

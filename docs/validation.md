@@ -1,5 +1,26 @@
 # Validation status
 
+## Rename to akhilvuputuri/skills; workflow and ios-design 0.1.2 — 15 October 2026
+
+- **Change:** the GitHub repository `akhilvuputuri/a-stack` was renamed `akhilvuputuri/skills` (reported: `gh repo rename`; GitHub redirects the old URL, and `git ls-remote` of the old URL returned the same HEAD). This PR renames everything inside it.
+  - **Marketplace.** Both marketplaces are now named `skills`, so plugin IDs become `workflow@skills` and `ios-design@skills`. That breaks existing `@a-stack` pins, so both plugins move to 0.1.2 and need new tags. The adopt skill gained migration steps for repositories that pin `a-stack`.
+  - **Text.** URLs, titles and prose say `skills`; CORE.md and the workflow's Codex display name drop the brand.
+  - **Handoff.** The store default is `~/.local/share/handoff` and the variable `HANDOFF_DATA_DIR`. `ASTACK_DATA_DIR` is still read when the new variable is unset, and an existing `~/.local/share/a-stack` is used while the new directory doesn't exist, so current stores keep working without moving private data. Installs write `.handoff-version` and `--replace` still recognizes `.a-stack-version`. Release files are `handoff-install-*` and `handoff-skills-*`. Handoff stays 0.1.2, because 0.1.2 was never released. `ASTACK_NODE_HEADERS` is still read after `HANDOFF_NODE_HEADERS`.
+  - **Not renamed:** dated entries below, and `docs/installation-research.md`, keep the names and links of their time; the old links redirect.
+- **Tests:** three new Handoff tests cover data-directory resolution (new default, legacy directory, both variables, and a CLI `get` from a legacy store under a scratch `HOME`), the installer marker (new marker written, legacy-marked install replaced), and an explicit `--data-dir` (or `--version`) working when the default locations can't be read.
+- **Checks** (15 October 2026, macOS arm64, Node 22):
+  - `npm run build:native`; `npm test` passes 46/46, including the release-artifact build and offline installer test. `claude plugin validate .` passes.
+  - **Claude:** isolated `CLAUDE_CONFIG_DIR`, `claude plugin marketplace add <checkout>` registers `skills`; `workflow@skills` and `ios-design@skills` install at 0.1.2.
+  - **Codex:** `codex-cli 0.159.2`, scratch `CODEX_HOME`: marketplace `skills` added, both plugins installed at 0.1.2.
+  - **npx:** `skills@1.5.18`, scratch `HOME`: `--list` against this checkout finds 8 skills.
+  - **Old registration** (tested, isolated `CLAUDE_CONFIG_DIR`): with a base checkout added as `a-stack` and `workflow@a-stack` installed, `claude plugin marketplace remove a-stack` removed the plugin too, and adding this checkout then registered `skills`.
+- **CI at `4f9c5aa`:** the legacy-store test failed on every CI runner (Linux and macOS, Node 22 and 24) with "Store entries must be owned by you with user-only permissions" but passed locally on Node 22.15. The test had copied a store with `fs.cpSync`. Hypothesis: the CI Node versions don't keep the 0700 directory modes on copy. The test now moves the store with `renameSync`. Test-only change.
+- **Independent review, round 1** (Opus 5.5, head `7a4ea8f`): REQUEST CHANGES.
+  - **Medium:** the CLI resolved the default store before reading arguments, so with `~/.local` unreadable or a file, an explicit `--data-dir` and `--version` failed. Fixed: the default is resolved only when no directory is given, with a regression test that fails before the fix.
+  - **Low:** README still named `ASTACK_NODE_HEADERS`; fixed. README and the adopt note lacked steps for an existing `a-stack` registration and for Codex contributors; added. The publish-handoff skill assumed `HANDOFF_DATA_DIR` is set; it now names the resolved store.
+  - **Accepted risk:** once `~/.local/share/handoff` exists, a legacy `~/.local/share/a-stack` is no longer read (documented: move the directory to migrate), and an older install that still writes to `a-stack` would split stores from a fresh install.
+- **Not verified:** installing from GitHub at the new tags, which don't exist until merge; Codex project config; agents other than Claude Code and Codex.
+
 ## npx and Codex installation; workflow and ios-design 0.1.1 — 14 October 2026
 
 - **Change:** `npx skills add akhilvuputuri/a-stack` (and Codex's plugin marketplace) now install the instruction skills, the way `addyosmani/agent-skills` does.

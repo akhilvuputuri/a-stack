@@ -1,9 +1,9 @@
 "use strict";
 const fs = require("node:fs");
 function reject() {
-  if (process.env.ASTACK_NETWORK_ATTEMPTS)
+  if (process.env.HANDOFF_NETWORK_ATTEMPTS)
     fs.appendFileSync(
-      process.env.ASTACK_NETWORK_ATTEMPTS,
+      process.env.HANDOFF_NETWORK_ATTEMPTS,
       "network attempted\n",
     );
   throw new Error("Network disabled by handoff test tripwire");

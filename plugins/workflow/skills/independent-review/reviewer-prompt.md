@@ -13,7 +13,7 @@ Diff: git diff <base>...<head>
 Requirements (what the change is supposed to do):
 <the user's actual requirements, acceptance scenarios and constraints, not the implementer's summary>
 
-Read first: AGENTS.md, <REVIEW.md or the a-stack review contract at <path>>, and <relevant design docs>.
+Read first: AGENTS.md, <REVIEW.md or the workflow review contract at <path>>, and <relevant design docs>.
 
 Checks already run by the implementer at this head: <commands and results>. Do not rerun the whole suite.
 Run targeted checks that could falsify the change.

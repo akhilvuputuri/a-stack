@@ -19,7 +19,7 @@ function fixture(t) {
   const env = {
     ...process.env,
     NODE_OPTIONS: "--require=" + path.join(ROOT, "tests/offline-guard.cjs"),
-    ASTACK_NETWORK_ATTEMPTS: marker,
+    HANDOFF_NETWORK_ATTEMPTS: marker,
   };
   t.after(() => {
     try {
@@ -134,7 +134,7 @@ test("network tripwire is active", (t) => {
   const result = spawnSync(
     process.execPath,
     ["-e", "require('node:net').connect(9, '127.0.0.1')"],
-    { env: { ...f.env, ASTACK_NETWORK_ATTEMPTS: marker }, encoding: "utf8" },
+    { env: { ...f.env, HANDOFF_NETWORK_ATTEMPTS: marker }, encoding: "utf8" },
   );
   assert.notEqual(result.status, 0);
   assert.match(result.stderr, /Network disabled/);
@@ -794,17 +794,118 @@ test("source boundary rejection and unknown install preserve files", (t) => {
   const target = path.join(f.base, "unknown");
   fs.mkdirSync(path.join(target, "resume-handoff"), { recursive: true });
   assert.throws(() => installer.install(target, ["resume-handoff"], true));
-  const before = process.env.ASTACK_DATA_DIR;
-  process.env.ASTACK_DATA_DIR = f.data;
+  const before = process.env.HANDOFF_DATA_DIR;
+  process.env.HANDOFF_DATA_DIR = f.data;
   try {
     assert.throws(
       () => installer.install(f.data, ["resume-handoff"]),
       /separate/,
     );
   } finally {
-    if (before === undefined) delete process.env.ASTACK_DATA_DIR;
-    else process.env.ASTACK_DATA_DIR = before;
+    if (before === undefined) delete process.env.HANDOFF_DATA_DIR;
+    else process.env.HANDOFF_DATA_DIR = before;
   }
+});
+function withEnv(values, body) {
+  const before = {};
+  for (const key of Object.keys(values)) {
+    before[key] = process.env[key];
+    if (values[key] === undefined) delete process.env[key];
+    else process.env[key] = values[key];
+  }
+  try {
+    return body();
+  } finally {
+    for (const [key, value] of Object.entries(before))
+      if (value === undefined) delete process.env[key];
+      else process.env[key] = value;
+  }
+}
+test("data directory keeps an existing a-stack store and environment variable", (t) => {
+  const f = fixture(t),
+    home = path.join(f.base, "home"),
+    unset = { HOME: home, HANDOFF_DATA_DIR: undefined, ASTACK_DATA_DIR: undefined };
+  fs.mkdirSync(home);
+  withEnv(unset, () =>
+    assert.equal(handoff.dataDir(), "~/.local/share/handoff"),
+  );
+  fs.mkdirSync(path.join(home, ".local/share/a-stack"), { recursive: true });
+  withEnv(unset, () =>
+    assert.equal(handoff.dataDir(), "~/.local/share/a-stack"),
+  );
+  fs.mkdirSync(path.join(home, ".local/share/handoff"));
+  withEnv(unset, () =>
+    assert.equal(handoff.dataDir(), "~/.local/share/handoff"),
+  );
+  withEnv({ ...unset, ASTACK_DATA_DIR: "/legacy" }, () =>
+    assert.equal(handoff.dataDir(), "/legacy"),
+  );
+  withEnv(
+    { ...unset, ASTACK_DATA_DIR: "/legacy", HANDOFF_DATA_DIR: "/current" },
+    () => assert.equal(handoff.dataDir(), "/current"),
+  );
+  // The CLI default follows the same resolution, so a legacy store stays readable.
+  const s = f.published(),
+    legacy = path.join(home, ".local/share/a-stack");
+  fs.rmSync(path.join(home, ".local"), { recursive: true });
+  fs.mkdirSync(path.dirname(legacy), { recursive: true, mode: 0o700 });
+  // Move rather than copy: some Node versions' cpSync does not keep the 0700 directory modes.
+  fs.renameSync(f.data, legacy);
+  const result = spawnSync(
+    process.execPath,
+    [
+      path.join(ROOT, "tools/handoff.cjs"),
+      "--project",
+      f.project,
+      "get",
+      s.handoff_id,
+      "--format",
+      "json",
+    ],
+    {
+      env: { ...f.env, HOME: home, HANDOFF_DATA_DIR: "", ASTACK_DATA_DIR: "" },
+      encoding: "utf8",
+    },
+  );
+  assert.equal(result.status, 0, result.stderr);
+  assert.equal(JSON.parse(result.stdout).record.revision_id, s.revision_id);
+});
+test("explicit data directory never reads the default locations", (t) => {
+  const f = fixture(t),
+    home = path.join(f.base, "blocked-home");
+  fs.mkdirSync(home);
+  // A file where ~/.local should be makes any lookup of the default store fail.
+  fs.writeFileSync(path.join(home, ".local"), "");
+  const env = { ...f.env, HOME: home, HANDOFF_DATA_DIR: "", ASTACK_DATA_DIR: "" };
+  f.cli(["project"], { env });
+  const version = spawnSync(
+    process.execPath,
+    [path.join(ROOT, "tools/handoff.cjs"), "--version"],
+    { env, encoding: "utf8" },
+  );
+  assert.equal(version.status, 0, version.stderr);
+});
+test("installer writes the Handoff marker and replaces a legacy-marked install", (t) => {
+  const f = fixture(t),
+    target = path.join(f.base, "marked"),
+    skill = path.join(target, "resume-handoff");
+  installer.install(target, ["resume-handoff"]);
+  assert.equal(
+    fs.readFileSync(path.join(skill, installer.MARKER), "utf8"),
+    installer.VERSION + "\n",
+  );
+  assert.equal(fs.existsSync(path.join(skill, ".a-stack-version")), false);
+  fs.renameSync(
+    path.join(skill, installer.MARKER),
+    path.join(skill, ".a-stack-version"),
+  );
+  installer.install(target, ["resume-handoff"], true);
+  assert.deepEqual(fs.readdirSync(skill).sort(), [
+    installer.MARKER,
+    "SKILL.md",
+    "references",
+    "scripts",
+  ]);
 });
 test("platform single-file installer works offline without Python/Git/compiler/source", (t) => {
   const f = fixture(t),

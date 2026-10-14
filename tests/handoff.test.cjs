@@ -849,7 +849,8 @@ test("data directory keeps an existing a-stack store and environment variable", 
     legacy = path.join(home, ".local/share/a-stack");
   fs.rmSync(path.join(home, ".local"), { recursive: true });
   fs.mkdirSync(path.dirname(legacy), { recursive: true, mode: 0o700 });
-  fs.cpSync(f.data, legacy, { recursive: true });
+  // Move rather than copy: some Node versions' cpSync does not keep the 0700 directory modes.
+  fs.renameSync(f.data, legacy);
   const result = spawnSync(
     process.execPath,
     [

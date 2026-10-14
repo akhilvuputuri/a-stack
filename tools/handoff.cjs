@@ -25,6 +25,25 @@ const expand = (value) =>
         ? path.join(os.homedir(), value.slice(2))
         : value,
   );
+// The store moved from ~/.local/share/a-stack when the repository was renamed. Keep using
+// an existing legacy store, and the legacy environment variable, until the owner moves it.
+const dataDir = () => {
+  const configured =
+    process.env.HANDOFF_DATA_DIR || process.env.ASTACK_DATA_DIR;
+  if (configured) return configured;
+  const present = (value) => {
+    try {
+      fs.lstatSync(expand(value));
+      return true;
+    } catch (error) {
+      if (error.code === "ENOENT") return false;
+      throw error;
+    }
+  };
+  return !present("~/.local/share/handoff") && present("~/.local/share/a-stack")
+    ? "~/.local/share/a-stack"
+    : "~/.local/share/handoff";
+};
 const within = (child, parent) => {
   const rel = path.relative(parent, child);
   return (
@@ -853,7 +872,7 @@ function getRecord(store, handoff, revision) {
 }
 function parse(argv) {
   const opts = {
-    data_dir: process.env.ASTACK_DATA_DIR || "~/.local/share/a-stack",
+    data_dir: dataDir(),
     project: process.cwd(),
     path: [],
     predecessor: [],
@@ -1214,4 +1233,5 @@ module.exports = {
   native,
   within,
   canonical,
+  dataDir,
 };

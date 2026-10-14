@@ -72,11 +72,11 @@ function build(output) {
       fs.readFileSync(sourceFile(relative)).toString("base64"),
     ]),
   );
-  const installer = path.join(output, "a-stack-install-" + platform + ".cjs");
-  const runner = `#!/usr/bin/env node\n'use strict';\nconst fs=require('node:fs'),path=require('node:path'),os=require('node:os');\nif(process.platform+'-'+process.arch!==${JSON.stringify(platform)}){console.error('Download the matching platform installer');process.exit(2);}\nconst root=fs.mkdtempSync(path.join(os.tmpdir(),'a-stack-install-'));\ntry{const payload=${JSON.stringify(payload)};for(const [name,bytes] of Object.entries(payload)){const file=path.join(root,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,Buffer.from(bytes,'base64'));}process.exitCode=require(path.join(root,'tools/install.cjs')).main();}finally{fs.rmSync(root,{recursive:true});}\n`;
+  const installer = path.join(output, "handoff-install-" + platform + ".cjs");
+  const runner = `#!/usr/bin/env node\n'use strict';\nconst fs=require('node:fs'),path=require('node:path'),os=require('node:os');\nif(process.platform+'-'+process.arch!==${JSON.stringify(platform)}){console.error('Download the matching platform installer');process.exit(2);}\nconst root=fs.mkdtempSync(path.join(os.tmpdir(),'handoff-install-'));\ntry{const payload=${JSON.stringify(payload)};for(const [name,bytes] of Object.entries(payload)){const file=path.join(root,name);fs.mkdirSync(path.dirname(file),{recursive:true});fs.writeFileSync(file,Buffer.from(bytes,'base64'));}process.exitCode=require(path.join(root,'tools/install.cjs')).main();}finally{fs.rmSync(root,{recursive:true});}\n`;
   fs.writeFileSync(installer, runner, { mode: 0o700 });
-  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "a-stack-release-")),
-    skillZip = path.join(output, `a-stack-skills-${VERSION}-${platform}.zip`);
+  const scratch = fs.mkdtempSync(path.join(os.tmpdir(), "handoff-release-")),
+    skillZip = path.join(output, `handoff-skills-${VERSION}-${platform}.zip`);
   try {
     const staged = path.join(scratch, "skills");
     install(staged, SKILLS);
@@ -88,7 +88,7 @@ function build(output) {
         "scripts/posix.node",
         "scripts/handoff.schema.json",
         "references/handoff.md",
-        ".a-stack-version",
+        ".handoff-version",
       ])
         entries.push([
           "skills/" + skill + "/" + relative,

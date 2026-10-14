@@ -1,8 +1,8 @@
-# Maintaining a-stack
+# Maintaining skills
 
 ## Workflow
 
-This repository follows the a-stack engineering workflow from its own source, [plugins/workflow/CORE.md](plugins/workflow/CORE.md), at the checked-out revision. Read it, and the workflow skills under `plugins/workflow/skills/`, before starting work. The bindings below supply this repository's specifics.
+This repository follows the engineering workflow from its own source, [plugins/workflow/CORE.md](plugins/workflow/CORE.md), at the checked-out revision. Read it, and the workflow skills under `plugins/workflow/skills/`, before starting work. The bindings below supply this repository's specifics.
 
 Non-negotiable even without the plugin:
 

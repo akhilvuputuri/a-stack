@@ -8,11 +8,12 @@ function build() {
   if (!["darwin", "linux"].includes(process.platform))
     throw new Error("Native filesystem addon supports macOS/Linux only");
   const headers =
+    process.env.HANDOFF_NODE_HEADERS ||
     process.env.ASTACK_NODE_HEADERS ||
     path.resolve(path.dirname(process.execPath), "../include/node");
   if (!fs.existsSync(path.join(headers, "node_api.h")))
     throw new Error(
-      "Local Node headers missing; set ASTACK_NODE_HEADERS to the directory containing node_api.h. No automatic download.",
+      "Local Node headers missing; set HANDOFF_NODE_HEADERS to the directory containing node_api.h. No automatic download.",
     );
   const output = path.join(
     root,

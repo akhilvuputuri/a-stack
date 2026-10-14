@@ -4,19 +4,19 @@ Handoff 0.1 uses Node 22+ and a POSIX filesystem with descriptor-relative operat
 
 ## Commands
 
-In a source checkout use `node /absolute/path/a-stack/tools/handoff.cjs`. In an installed skill use `node /absolute/path/SKILL/scripts/handoff.cjs`. Below, `handoff` abbreviates that full command. Global options must precede the subcommand:
+In a source checkout use `node /absolute/path/skills/tools/handoff.cjs`. In an installed skill use `node /absolute/path/SKILL/scripts/handoff.cjs`. Below, `handoff` abbreviates that full command. Global options must precede the subcommand:
 
 ```sh
-handoff --project /path/to/app --data-dir /local/private/a-stack project
+handoff --project /path/to/app --data-dir /local/private/handoff project
 handoff --project /path/to/app list --query retry
 handoff --project /path/to/app inspect --path src/retry.ts --path tests/retry.test.ts
 handoff --project /path/to/app template --title 'Retry investigation'
 handoff --project /path/to/app draft --input /private/payload.json
-handoff --project /path/to/app render --input /local/private/a-stack/projects/P/drafts/R.json
-handoff --project /path/to/app publish --input /local/private/a-stack/projects/P/drafts/R.json
+handoff --project /path/to/app render --input /local/private/handoff/projects/P/drafts/R.json
+handoff --project /path/to/app publish --input /local/private/handoff/projects/P/drafts/R.json
 handoff --project /path/to/app get HANDOFF_ID --check-state
 handoff --project /path/to/app get HANDOFF_ID --revision REVISION_ID --format json
-handoff --project /path/to/app get HANDOFF_ID --path /local/private/a-stack/projects/P/handoffs/H/revisions/R.json
+handoff --project /path/to/app get HANDOFF_ID --path /local/private/handoff/projects/P/handoffs/H/revisions/R.json
 handoff --project /path/to/app export HANDOFF_ID --format markdown
 handoff --project /path/to/app validate --input /private/full-record.json
 ```
@@ -58,7 +58,7 @@ All groups are required; empty arrays and truthful nulls are valid. Do not inven
 
 ## Store and project identity
 
-Default: `~/.local/share/a-stack`; override with `ASTACK_DATA_DIR` or `--data-dir`. Choose a genuinely local directory outside source checkouts and cloud-synced folders. The tool cannot detect every sync product. Configured root parents are trusted filesystem configuration and resolved canonically; the configured root itself and store children cannot be symlinks. Store directories/files must be owned by the current user and private (0700/0600). Existing public permissions are rejected with an actionable error, not silently changed.
+Default: `~/.local/share/handoff`; override with `HANDOFF_DATA_DIR` or `--data-dir`. Stores from before the rename keep working: `ASTACK_DATA_DIR` is still read when `HANDOFF_DATA_DIR` is unset, and an existing `~/.local/share/a-stack` is used while `~/.local/share/handoff` does not exist. To migrate, move the directory to the new path. Choose a genuinely local directory outside source checkouts and cloud-synced folders. The tool cannot detect every sync product. Configured root parents are trusted filesystem configuration and resolved canonically; the configured root itself and store children cannot be symlinks. Store directories/files must be owned by the current user and private (0700/0600). Existing public permissions are rejected with an actionable error, not silently changed.
 
 ```text
 DATA_ROOT/

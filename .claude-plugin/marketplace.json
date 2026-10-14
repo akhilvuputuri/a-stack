@@ -1,5 +1,5 @@
 {
-  "name": "a-stack",
+  "name": "skills",
   "description": "Akhil's reusable coding and AI workflow skills",
   "owner": { "name": "Akhil Vuputuri" },
   "plugins": [
@@ -7,13 +7,13 @@
       "name": "ios-design",
       "source": "./plugins/ios-design",
       "description": "Audit and refine native iPhone and iPad interfaces using a source-linked digest of Apple's Human Interface Guidelines",
-      "version": "0.1.1"
+      "version": "0.1.2"
     },
     {
       "name": "workflow",
       "source": "./plugins/workflow",
       "description": "Engineering workflow for coding agents: fresh-state preflight, independent exact-head review, verified release, evidence-labelled journal, incident and experiment method, and repository adoption",
-      "version": "0.1.1"
+      "version": "0.1.2"
     }
   ]
 }

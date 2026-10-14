@@ -5,7 +5,7 @@ metadata:
   internal: true
 ---
 
-Create a task-specific continuation record using only context available to this agent. “Publish” means durable local storage. Use the bundled `scripts/handoff.cjs` with Node 22+; substitute the actual absolute skill directory in commands. If the runtime is missing, follow the a-stack repository's offline installer rather than downloading dependencies. Read [handoff reference](references/handoff.md) for command syntax and the record contract when constructing a record.
+Create a task-specific continuation record using only context available to this agent. “Publish” means durable local storage. Use the bundled `scripts/handoff.cjs` with Node 22+; substitute the actual absolute skill directory in commands. If the runtime is missing, follow the akhilvuputuri/skills repository's offline installer rather than downloading dependencies. Read [handoff reference](references/handoff.md) for command syntax and the record contract when constructing a record.
 
 ## Select and extract
 
@@ -21,7 +21,7 @@ Run `project` and project-scoped `list --query` to discover identity and any rel
 
 Run `template --title` for an editable JSON payload and `inspect --path` for relevant repository paths. Preserve other known code-state details when incorporating inspection output. Record unpublished work and inaccessible artifacts. The helper does not transfer code. Discussion-only records may have unknown code state with a stated limitation.
 
-Create the payload in a private temporary file outside application and a-stack checkouts, preferably beneath `ASTACK_DATA_DIR` with mode 0600. Retain that file on failure. Populate all concept groups: scope, continuation, findings, decisions, code state, verification, dependencies, provenance. Aim for a 600–1200 word rendered brief, shorter for simple tasks; keep essential constraints and blockers even when longer.
+Create the payload in a private temporary file outside application and skills checkouts, preferably beneath `HANDOFF_DATA_DIR` with mode 0600. Retain that file on failure. Populate all concept groups: scope, continuation, findings, decisions, code state, verification, dependencies, provenance. Aim for a 600–1200 word rendered brief, shorter for simple tasks; keep essential constraints and blockers even when longer.
 
 Run `draft --input FILE` (with explicit lineage for an update). This validates and saves a private draft outside the published list. For a draft request, render that draft and stop. For a publish request, run `publish --input DRAFT_PATH` using exactly the generated draft, retaining its IDs for retries. Publishing validates, writes atomically without overwriting, and reads back. A differing same-ID retry is an error. Competing successors remain visible; never choose by timestamp. A multi-parent revision requires explicit reconciliation of the conflicting content.
 

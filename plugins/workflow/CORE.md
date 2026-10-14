@@ -1,6 +1,6 @@
-# a-stack engineering workflow — core rules
+# Engineering workflow — core rules
 
-These rules apply in every repository that adopts the a-stack workflow. The repository's AGENTS.md has a "Workflow bindings" section. It names the concrete commands, paths, reviewer, release process and any exceptions, and where it is more specific, it wins. The user's direct requests and repository instructions take precedence over this file. Nothing here authorizes an action that the user or repository has not authorized.
+These rules apply in every repository that adopts this workflow. The repository's AGENTS.md has a "Workflow bindings" section. It names the concrete commands, paths, reviewer, release process and any exceptions, and where it is more specific, it wins. The user's direct requests and repository instructions take precedence over this file. Nothing here authorizes an action that the user or repository has not authorized.
 
 ## 1. Start from fresh integrated state
 

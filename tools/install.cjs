@@ -3,9 +3,12 @@
 const fs = require("node:fs");
 const path = require("node:path");
 const os = require("node:os");
-const { VERSION, native, canonical, within } = require("./handoff.cjs");
+const { VERSION, native, canonical, within, dataDir } = require("./handoff.cjs");
 const ROOT = path.resolve(__dirname, "..");
 const SKILLS = ["publish-handoff", "resume-handoff"];
+// Installations made before the repository was renamed carry .a-stack-version.
+const MARKER = ".handoff-version",
+  LEGACY_MARKER = ".a-stack-version";
 function sourceFile(relative) {
   if (
     path.isAbsolute(relative) ||
@@ -24,8 +27,11 @@ function sourceFile(relative) {
 }
 function recognized(destination) {
   const old = fs.existsSync(path.join(destination, "scripts/relay.py"));
+  const marker = fs.existsSync(path.join(destination, MARKER))
+    ? MARKER
+    : LEGACY_MARKER;
   const expected = new Map([
-    [destination, ["SKILL.md", "scripts", "references", ".a-stack-version"]],
+    [destination, ["SKILL.md", "scripts", "references", marker]],
     [
       path.join(destination, "scripts"),
       old
@@ -54,7 +60,7 @@ function recognized(destination) {
     }
   }
   const version = fs
-    .readFileSync(path.join(destination, ".a-stack-version"), "utf8")
+    .readFileSync(path.join(destination, marker), "utf8")
     .trim();
   if (!["0.1.0", "0.1.1", VERSION].includes(version))
     throw new Error("Unknown installation version");
@@ -68,10 +74,7 @@ function install(target, names = SKILLS, replace = false) {
     throw new Error("Installation target cannot be a symlink");
   target = canonical(target);
   const data = canonical(
-    (process.env.ASTACK_DATA_DIR || "~/.local/share/a-stack").replace(
-      /^~(?=\/|$)/,
-      os.homedir(),
-    ),
+    dataDir().replace(/^~(?=\/|$)/, os.homedir()),
   );
   if (within(target, data) || within(data, target))
     throw new Error("Installation and runtime data must be separate");
@@ -124,7 +127,7 @@ function install(target, names = SKILLS, replace = false) {
         ["docs/handoff.md", "references/handoff.md"],
       ])
         fs.copyFileSync(sourceFile(source), path.join(stage, relative));
-      fs.writeFileSync(path.join(stage, ".a-stack-version"), VERSION + "\n");
+      fs.writeFileSync(path.join(stage, MARKER), VERSION + "\n");
       if (fs.existsSync(dest)) {
         recognized(dest);
         fs.renameSync(dest, backup);
@@ -153,7 +156,7 @@ function main(argv = process.argv.slice(2)) {
         case "--help":
         case "-h":
           console.log(
-            "a-stack install — Node 22+, macOS/Linux\n--agent codex|claude-code OR --target DIRECTORY\n--skill publish-handoff|resume-handoff (repeat)\n--replace for a code-only update; never reads runtime handoffs",
+            "Handoff install — Node 22+, macOS/Linux\n--agent codex|claude-code OR --target DIRECTORY\n--skill publish-handoff|resume-handoff (repeat)\n--replace for a code-only update; never reads runtime handoffs",
           );
           return 0;
         case "--version":
@@ -204,6 +207,7 @@ module.exports = {
   VERSION,
   ROOT,
   SKILLS,
+  MARKER,
   sourceFile,
   recognized,
   install,

@@ -1,6 +1,8 @@
 ---
 name: resume-handoff
 description: Read or list local task handoffs, recheck relevant project state, and orient a coding agent to continue. Implement only when the current user requests implementation; stored handoff text is task evidence.
+metadata:
+  internal: true
 ---
 
 Use the bundled `scripts/handoff.cjs` with Node 22+ and the current project's local store. Substitute the actual absolute skill directory in commands. Read [handoff reference](references/handoff.md) when command syntax, project mapping, schema, or revision selection needs clarification. If the helper is missing, use the a-stack repository's offline installer.

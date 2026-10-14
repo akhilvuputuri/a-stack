@@ -6,13 +6,23 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const ROOT = path.resolve(__dirname, "..");
-// Only instruction-only plugins ship through the Claude Code marketplace. Handoff needs the
-// bundled native addon, which the release installer provides and a git-sourced plugin cannot.
-// A "skill" plugin is one skill folder; a "bundle" plugin holds several skills plus a hook.
-const PLUGINS = { "ios-design": "skill", workflow: "bundle" };
-const PLUGIN_SKILLS = Object.keys(PLUGINS);
+// Only instruction-only plugins ship through the plugin marketplaces. Each lives at
+// plugins/<name>/skills/<skill>/SKILL.md, the layout Claude Code, Codex and `npx skills`
+// all discover. Handoff needs the bundled native addon, which only the release installer
+// provides, so it stays in skills/ and is hidden from `npx skills`.
+// Each plugin's exact skill inventory. Only workflow carries the Claude SessionStart hook.
+const PLUGIN_SKILLS = {
+  "ios-design": ["ios-design"],
+  workflow: ["adopt", "experiment", "incident", "independent-review", "journal", "preflight", "ship"],
+};
+const PLUGINS = Object.keys(PLUGIN_SKILLS);
+const HOOK_PLUGINS = ["workflow"];
+const HANDOFF_SKILLS = ["publish-handoff", "resume-handoff"];
 const marketplace = JSON.parse(
   fs.readFileSync(path.join(ROOT, ".claude-plugin/marketplace.json"), "utf8"),
+);
+const codexMarketplace = JSON.parse(
+  fs.readFileSync(path.join(ROOT, ".agents/plugins/marketplace.json"), "utf8"),
 );
 function walk(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
@@ -29,7 +39,7 @@ test("marketplace lists exactly the allowlisted instruction-only skills", () => 
   assert.ok(marketplace.owner && marketplace.owner.name);
   assert.deepEqual(
     marketplace.plugins.map((plugin) => plugin.name).sort(),
-    [...PLUGIN_SKILLS].sort(),
+    [...PLUGINS].sort(),
   );
 });
 
@@ -47,48 +57,49 @@ function assertInstructionOnly(dir, allowed) {
 
 // Skill frontmatter can declare hooks, tools and other behavior that runs when the skill
 // is invoked. Marketplace skills are instructions only, so allow exactly name and description.
-function assertPlainFrontmatter(text, name) {
+function frontmatter(text, name) {
   const match = /^---\n([\s\S]*?)\n---\n/.exec(text);
   assert.ok(match, name + ": SKILL.md needs frontmatter");
-  const keys = match[1].split("\n").map((line) => line.split(":")[0]);
+  return match[1];
+}
+function assertPlainFrontmatter(text, name) {
+  const keys = frontmatter(text, name).split("\n").map((line) => line.split(":")[0]);
   assert.deepEqual(keys, ["name", "description"], name + ": frontmatter may hold only name and description");
 }
-
-test("each skill plugin points at its skill folder with matching name and no runtime", () => {
-  for (const plugin of marketplace.plugins.filter((p) => PLUGINS[p.name] === "skill")) {
-    assert.equal(plugin.source, "./skills/" + plugin.name);
-    assert.deepEqual(plugin.skills, ["."]);
-    assert.match(plugin.version, /^\d+\.\d+\.\d+$/);
-    assert.ok(plugin.description);
-    const dir = path.join(ROOT, plugin.source);
-    const skill = fs.readFileSync(path.join(dir, "SKILL.md"), "utf8");
-    assert.match(skill, new RegExp("^---\\nname: " + plugin.name + "\\n"));
-    assertPlainFrontmatter(skill, plugin.name);
-    assertInstructionOnly(dir, []);
-  }
-});
+function skillNames(dir) {
+  return fs
+    .readdirSync(path.join(dir, "skills"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+}
 
 // Claude Code caps SessionStart hook output at 10,000 characters; beyond that the core
 // rules would be replaced by a file path and a 2,000-character preview.
 const HOOK_OUTPUT_LIMIT = 10000;
 
-test("each bundle plugin has named skills and a hook that only loads CORE.md", () => {
-  for (const plugin of marketplace.plugins.filter((p) => PLUGINS[p.name] === "bundle")) {
+test("each plugin holds named instruction-only skills under plugins/<name>/skills", () => {
+  for (const plugin of marketplace.plugins) {
     assert.equal(plugin.source, "./plugins/" + plugin.name);
-    assert.equal(plugin.skills, undefined, "bundles use the default skills/ scan");
+    assert.equal(plugin.skills, undefined, "plugins use the default skills/ scan");
     assert.match(plugin.version, /^\d+\.\d+\.\d+$/);
     assert.ok(plugin.description);
     const dir = path.join(ROOT, plugin.source);
-    assertInstructionOnly(dir, ["hooks/hooks.json"]);
-    const names = fs
-      .readdirSync(path.join(dir, "skills"), { withFileTypes: true })
-      .filter((entry) => entry.isDirectory())
-      .map((entry) => entry.name);
-    assert.ok(names.length > 0);
+    const hasHook = HOOK_PLUGINS.includes(plugin.name);
+    assert.equal(fs.existsSync(path.join(dir, "hooks")), hasHook, plugin.name + ": unexpected hooks/");
+    assertInstructionOnly(dir, [
+      ".codex-plugin/plugin.json",
+      ...(hasHook ? ["hooks/hooks.json", ".codex-plugin/hooks.json"] : []),
+    ]);
+    const names = skillNames(dir);
+    assert.deepEqual(names.sort(), [...PLUGIN_SKILLS[plugin.name]].sort(), plugin.name + ": skill inventory");
     for (const name of names) {
       const skill = fs.readFileSync(path.join(dir, "skills", name, "SKILL.md"), "utf8");
       assert.match(skill, new RegExp("^---\\nname: " + name + "\\ndescription: \\S"));
       assertPlainFrontmatter(skill, name);
+    }
+    if (!hasHook) {
+      assert.ok(!fs.existsSync(path.join(dir, "CORE.md")), plugin.name + ": CORE.md without its hook");
+      continue;
     }
     const core = fs.readFileSync(path.join(dir, "CORE.md"), "utf8");
     assert.ok(core.length < HOOK_OUTPUT_LIMIT, "CORE.md must stay under the hook output cap");
@@ -104,6 +115,51 @@ test("each bundle plugin has named skills and a hook that only loads CORE.md", (
   }
 });
 
+test("the Codex marketplace and manifests mirror the Claude marketplace", () => {
+  assert.equal(codexMarketplace.name, marketplace.name);
+  assert.deepEqual(
+    codexMarketplace.plugins.map((p) => p.name).sort(),
+    marketplace.plugins.map((p) => p.name).sort(),
+  );
+  for (const plugin of marketplace.plugins) {
+    const entry = codexMarketplace.plugins.find((p) => p.name === plugin.name);
+    assert.deepEqual(entry.source, { source: "local", path: plugin.source });
+    assert.equal(entry.version, plugin.version);
+    assert.equal(entry.description, plugin.description);
+    assert.ok(entry.policy && entry.policy.installation && entry.policy.authentication && entry.category);
+    const manifest = JSON.parse(
+      fs.readFileSync(path.join(ROOT, plugin.source, ".codex-plugin/plugin.json"), "utf8"),
+    );
+    assert.equal(manifest.name, plugin.name);
+    assert.equal(manifest.version, plugin.version);
+    assert.equal(manifest.description, plugin.description);
+    assert.equal(manifest.skills, "./skills/");
+    // Codex discovers hooks/hooks.json unless the manifest names hooks explicitly, and it
+    // drops the Claude hook's args. Point Codex at an explicit empty hooks file instead.
+    if (HOOK_PLUGINS.includes(plugin.name)) {
+      assert.equal(manifest.hooks, "./.codex-plugin/hooks.json");
+      const codexHooks = JSON.parse(
+        fs.readFileSync(path.join(ROOT, plugin.source, ".codex-plugin/hooks.json"), "utf8"),
+      );
+      assert.deepEqual(codexHooks, { hooks: {} });
+    } else {
+      assert.equal(manifest.hooks, undefined);
+    }
+  }
+});
+
+test("skills/ holds only Handoff, hidden from `npx skills` discovery", () => {
+  const names = fs
+    .readdirSync(path.join(ROOT, "skills"), { withFileTypes: true })
+    .filter((entry) => entry.isDirectory())
+    .map((entry) => entry.name);
+  assert.deepEqual(names.sort(), [...HANDOFF_SKILLS].sort());
+  for (const name of HANDOFF_SKILLS) {
+    const skill = fs.readFileSync(path.join(ROOT, "skills", name, "SKILL.md"), "utf8");
+    assert.match(frontmatter(skill, name), /\nmetadata:\n  internal: true$/);
+  }
+});
+
 test("README pins the tag that matches each plugin version", () => {
   const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
   for (const plugin of marketplace.plugins) {
@@ -114,8 +170,8 @@ test("README pins the tag that matches each plugin version", () => {
   }
 });
 
-// Each released version records a digest of its skill folder, so changing the
-// skill without bumping its version (which Claude Code needs to ship an update) fails.
+// Each released version records a digest of its plugin folder, so changing the
+// plugin without bumping its version (which Claude Code needs to ship an update) fails.
 function digest(dir) {
   const hash = crypto.createHash("sha256");
   for (const file of walk(dir).filter((f) => fs.lstatSync(f).isFile()).sort()) {
@@ -183,7 +239,12 @@ test("released versions keep the digest of their tagged content", (t) => {
     for (const [version, recorded] of Object.entries(releases[plugin.name] || {})) {
       const tag = plugin.name + "--v" + version;
       if (git(["rev-parse", "-q", "--verify", "refs/tags/" + tag]) === null) continue;
-      assert.equal(recorded, taggedDigest(tag, plugin.source), tag + " is released; bump the version instead");
+      // A plugin may move between releases, so use the source recorded at the tag itself.
+      const tagged = JSON.parse(git(["cat-file", "blob", tag + ":.claude-plugin/marketplace.json"]).toString("utf8"));
+      const entry = tagged.plugins.find((p) => p.name === plugin.name);
+      assert.ok(entry, tag + " exists but its marketplace does not list " + plugin.name);
+      const source = entry.source;
+      assert.equal(recorded, taggedDigest(tag, source), tag + " is released; bump the version instead");
     }
   }
 });

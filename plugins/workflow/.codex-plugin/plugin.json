@@ -1,0 +1,18 @@
+{
+  "name": "workflow",
+  "version": "0.1.1",
+  "description": "Engineering workflow for coding agents: fresh-state preflight, independent exact-head review, verified release, evidence-labelled journal, incident and experiment method, and repository adoption",
+  "author": {
+    "name": "Akhil Vuputuri",
+    "url": "https://github.com/akhilvuputuri"
+  },
+  "repository": "https://github.com/akhilvuputuri/a-stack",
+  "skills": "./skills/",
+  "hooks": "./.codex-plugin/hooks.json",
+  "interface": {
+    "displayName": "a-stack workflow",
+    "shortDescription": "Preflight, independent review, verified shipping and evidence-labelled records for coding agents.",
+    "developerName": "Akhil Vuputuri",
+    "category": "Coding"
+  }
+}

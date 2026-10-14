@@ -1,0 +1,14 @@
+{
+  "name": "ios-design",
+  "version": "0.1.1",
+  "description": "Audit and refine native iPhone and iPad interfaces using a source-linked digest of Apple's Human Interface Guidelines",
+  "author": { "name": "Akhil Vuputuri", "url": "https://github.com/akhilvuputuri" },
+  "repository": "https://github.com/akhilvuputuri/a-stack",
+  "skills": "./skills/",
+  "interface": {
+    "displayName": "iOS design",
+    "shortDescription": "Audit and refine native iPhone and iPad interfaces against Apple's Human Interface Guidelines.",
+    "developerName": "Akhil Vuputuri",
+    "category": "Coding"
+  }
+}

@@ -10,7 +10,7 @@ Any agent (Claude Code, Codex, Cursor, Copilot, Gemini and [70+ more](https://gi
 npx skills add akhilvuputuri/skills
 ```
 
-This installs the instruction skills from `ios-design` and `workflow`. Add `--list` to browse, `--skill <name>` to pick, `-g` for every project, and `-a <agent>` to choose agents. For a reviewed release instead of the default branch, use a tag URL such as `npx skills add https://github.com/akhilvuputuri/skills/tree/workflow--v0.1.2`.
+This installs the instruction skills from `ios-design` and `workflow`. Add `--list` to browse, `--skill <name>` to pick, `-g` for every project, and `-a <agent>` to choose agents. For a reviewed release instead of the default branch, use a tag URL such as `npx skills add https://github.com/akhilvuputuri/skills/tree/ios-design--v0.1.3`.
 
 **Claude Code:** the plugin is recommended, because only the Claude plugin adds the workflow's always-on core rules (a SessionStart hook). The Codex plugin deliberately ships no hooks.
 
@@ -67,20 +67,20 @@ Commit this to the repository's `.claude/settings.json`:
 ```json
 {
   "extraKnownMarketplaces": {
-    "skills": { "source": { "source": "github", "repo": "akhilvuputuri/skills", "ref": "workflow--v0.1.2" } }
+    "skills": { "source": { "source": "github", "repo": "akhilvuputuri/skills", "ref": "ios-design--v0.1.3" } }
   },
   "enabledPlugins": { "workflow@skills": true, "ios-design@skills": true }
 }
 ```
 
-For Codex, each contributor runs `codex plugin marketplace add akhilvuputuri/skills@workflow--v0.1.2` and then `codex plugin add workflow@skills` once. The repository's `.codex/config.toml` then keeps the plugin enabled in that trusted project. Enabling it there does not install it.
+For Codex, each contributor runs `codex plugin marketplace add akhilvuputuri/skills@ios-design--v0.1.3` and then `codex plugin add workflow@skills` once. The repository's `.codex/config.toml` then keeps the plugin enabled in that trusted project. Enabling it there does not install it.
 
 ```toml
 [plugins."workflow@skills"]
 enabled = true
 ```
 
-The marketplace has one `ref`, and a tag carries every plugin as of its commit. Current releases are `workflow--v0.1.2` and `ios-design--v0.1.2`, both on the same commit. Pin only a tag at which every plugin version you use is itself tagged. The `adopt` skill handles an existing pin without downgrading other plugins.
+The marketplace has one `ref`, and a tag carries every plugin as of its commit. Current releases are `workflow--v0.1.2` and `ios-design--v0.1.3`. The `ios-design--v0.1.3` commit also carries workflow 0.1.2 unchanged, so pinning it gives both current versions. Pin only a tag at which every plugin version you use is itself tagged. The `adopt` skill handles an existing pin without downgrading other plugins.
 
 ### Releasing a plugin
 

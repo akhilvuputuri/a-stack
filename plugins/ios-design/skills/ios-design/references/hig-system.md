@@ -21,13 +21,14 @@ Distilled from the HIG pages on [App icons](https://developer.apple.com/design/h
   - Default, dark, clear, and tinted versions keep the same core features. Base the dark version on the light one; colored backgrounds give the best contrast in dark.
   - Alternate icons need their own dark, clear, and tinted versions.
   - Color spaces: sRGB, Gray Gamma 2.2, Display P3.
-- **Check.** Verify the icon at small sizes (Settings, Spotlight, notifications) and in every appearance on a device.
+- **Check.** Verify the icon at small sizes (Settings, Spotlight, notifications) and in every appearance, switched with Home Screen Edit > Customize in the simulator or on a device. Generated icons can come out blank; check the files in CI and look at the real Home Screen ([Implementation notes](implementation.md#app-icons-and-naming)).
 
 ## Branding
 
 - Express the brand through voice, a restrained accent color (primary actions, status, the selected tab), and optionally a legible custom font for headlines with system fonts for body text. Consider carrying brand color in the content layer, beneath the glass.
 - Use familiar components, and let branding defer to content.
 - Don't repeat the logo through the app, don't turn the launch screen into branding (onboarding may carry it), and keep Apple trademarks out of the name and images.
+- Names: screen candidates against the App Store and the web before choosing; see [Implementation notes](implementation.md#app-icons-and-naming).
 
 ## Widgets
 

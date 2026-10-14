@@ -80,7 +80,7 @@ For Codex, each contributor runs `codex plugin marketplace add akhilvuputuri/ski
 enabled = true
 ```
 
-The marketplace has one `ref`, and a tag carries every plugin as of its commit. Current releases are `workflow--v0.1.2` and `ios-design--v0.1.2`, both on the same commit. Pin only a tag at which every plugin version you use is itself tagged. The `adopt` skill handles an existing pin without downgrading other plugins.
+The marketplace has one `ref`, and a tag carries every plugin as of its commit. Current releases are `workflow--v0.1.2` and `ios-design--v0.1.3`. The `ios-design--v0.1.3` commit also carries workflow 0.1.2 unchanged, so pinning it gives both current versions. Pin only a tag at which every plugin version you use is itself tagged. The `adopt` skill handles an existing pin without downgrading other plugins.
 
 ### Releasing a plugin
 

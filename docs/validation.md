@@ -1,5 +1,44 @@
 # Validation status
 
+## ios-design 0.1.3: field notes from shipping PageStash — 15 October 2026
+
+Adds `references/implementation.md`, field notes from applying the skill end to end in PageStash, a SwiftUI reading app (iOS 17 target; Xcode 26.3 with the iOS 26.3 SDK locally, Xcode 16.4 in CI), across releases 0.3.0–0.4.1. Other changes:
+
+- `SKILL.md`: links the notes, adds compile-time gating for SDK-only APIs, and adds an issue-tracker boundary (close only when asked; list verified and unverified items).
+- `content-apps.md`: theme scope becomes a product decision to ask about, recording that the owner rejected a reader-only theme as inconsistent; adds app-wide guidance and a Trash pattern.
+- `checklist.md`: an Icon row, theme scope as decided, and passing simulator UDIDs.
+- `hig-system.md`: pointers for icon checks and naming.
+
+Evidence (reported from that project's records and CI, not re-run here):
+
+- **Tested:** the SDK gating failure on the Xcode 16.4 CI runner, and its `#if compiler(>=6.2)` fix.
+- **Measured:** the contrast ratios (3.87:1 for `#4685c5` on white, 10.62:1 for the sepia ink); the Swift snippet in the notes reproduces them, run with `swift` locally.
+- **Tested in the simulator:**
+  - The destructive swipe-role, sheet/full-screen-cover and confirmation-capture pitfalls.
+  - The receding-bar behaviors, including edge swipe-back with the bar hidden.
+  - The Trash flow, and the widget, quick action and deep-link routing.
+  - The `booted` multi-simulator pitfall.
+- **Tested in unit tests or CI:**
+  - The blank AppKit icon and the CoreGraphics fix.
+  - The rejected-edit status mapping.
+  - The App Group snapshot round trip and Continue Reading selection. Clearing on sign-out is implemented but untested.
+- **Tested on the owner's iPhone:** signed install and launch only.
+- **Compiled against the iOS 26.3 SDK in PageStash:** the API names in the notes (`safeAreaBar`, `Button(role: .close)`, `ToolbarSpacer`, `privacySensitive()`, `CSSearchableItemActionType`, `windowScene(_:performActionFor:completionHandler:)`, `UIFontMetrics.scaledValue(for:compatibleWith:)`). They are not added to `evals/ios-design/ApiProbe.swift`.
+- **Owner decisions** recorded as observations, not rules: the app-wide theme preference, and the Trash request.
+- **Not verified:** Icon Composer `.icon` builds, and dark or tinted Home Screen icons on a device.
+- **Independent review of `7d29e88`: REQUEST CHANGES (Opus 5.5).** Fixed:
+  - The false "no simulator tooling for Bold Text or shake" line now points to Settings, Environment Overrides and Device > Shake.
+  - The no-alpha icon rule now applies only to the default icon, since dark variants may be transparent.
+  - The theme guidance agrees across files: `hig-foundations.md` points to `content-apps.md`, the trade-off is put to the owner, and the owner's choice is a dated observation in the notes.
+  - Home Screen icon styles can be switched with Customize in the simulator.
+  - Removed an unverified CSS claim, and corrected the cause of Bold Text not reaching web content.
+  - Clarified compiler-version gating and the tinted JSON, and dropped an unverified glass claim.
+  - Split the evidence above by kind.
+- **Re-review of `505baf6`: APPROVE (Opus 5.5).** One low finding was fixed in the next commit: the reason sheets need the theme reapplied is now stated accurately (tokens derived from each presentation's `colorScheme`, and per-controller UIKit overrides). The icon-check wording in `hig-system.md` now matches the checklist.
+- **Checks (tested):** at `819702e`, `npm run build:native`, `npm test` (43/43, on three consecutive runs) and `claude plugin validate .` passed. One earlier run had a single failure in "store permissions are private and public records reject", a Handoff test this change does not touch; it did not reproduce, including on unmodified `origin/main`. The install layout is unchanged (one new reference file), so `npx skills` and Codex install checks were not rerun.
+- **Devin Review of `819702e`:** no issues found.
+- **Released as 0.1.3, not 0.1.2:** the rename PR (#8) merged first and released `ios-design--v0.1.2`, so this change was squashed onto `138eee4` as 0.1.3. Conflicts were confined to `releases.json` (0.1.2 kept, 0.1.3 added), the README release line and this file; the plugin folder merged cleanly. After the rebase, `npm run build:native`, `npm test` (46/46) and `claude plugin validate .` pass.
+
 ## Rename to akhilvuputuri/skills; workflow and ios-design 0.1.2 — 15 October 2026
 
 - **Change:** the GitHub repository `akhilvuputuri/a-stack` was renamed `akhilvuputuri/skills` (reported: `gh repo rename`; GitHub redirects the old URL, and `git ls-remote` of the old URL returned the same HEAD). This PR renames everything inside it.

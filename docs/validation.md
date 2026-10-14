@@ -1,5 +1,11 @@
 # Validation status
 
+## Codex migration steps; workflow 0.1.3 — 15 October 2026
+
+- **Change:** the adopt skill's migration from the `a-stack` marketplace now removes each `<plugin>@a-stack` in Codex before removing the marketplace, and the README says the same. Workflow moves to 0.1.3.
+- **Why (tested):** this came from the independent review of akhilvuputuri/PageStash#48. In a scratch `CODEX_HOME` with codex-cli 0.159.2, `codex plugin marketplace remove a-stack` left `[plugins."workflow@a-stack"]` and `[plugins."ios-design@a-stack"]` enabled. `codex debug prompt-input` then listed every shared skill twice. Running `codex plugin remove` for each old plugin first left only the `@skills` entries.
+- **Checks:** see the PR.
+
 ## Rename to akhilvuputuri/skills; workflow and ios-design 0.1.2 — 15 October 2026
 
 - **Change:** the GitHub repository `akhilvuputuri/a-stack` was renamed `akhilvuputuri/skills` (reported: `gh repo rename`; GitHub redirects the old URL, and `git ls-remote` of the old URL returned the same HEAD). This PR renames everything inside it.

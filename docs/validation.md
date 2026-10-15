@@ -1,5 +1,26 @@
 # Validation status
 
+## One root plugin, skills 0.2.0 — 15 October 2026
+
+- **Change:** the repository root is now a single plugin, `skills@skills`, laid out like addyosmani/agent-skills and obra/superpowers (both checked on GitHub: one root plugin each, with `skills/` at the top). Before, it shipped two plugins under `plugins/`.
+  - Every instruction skill is in `skills/`: the seven workflow skills and `ios-design`. `CORE.md`, `hooks/hooks.json`, `.claude-plugin/plugin.json` and `.codex-plugin/` are at the root.
+  - Handoff moved from `skills/` to `handoff/`. Its development symlinks keep the same depth and still resolve. The installer and release build read the new path; the release ZIP layout is unchanged.
+  - **One version and tag:** `skills--v0.2.0`. The content digest covers only what the plugin ships (`skills/`, `CORE.md`, `hooks/`, both plugin manifests). Claude Code copies the whole root, but nothing else changes what a session loads.
+  - The released digests of the former `workflow` and `ios-design` plugins are still checked against their tags.
+  - A test keeps other plugin components (`commands/`, `agents/`, `.mcp.json` and the like) out of the root.
+  - The README, adopt skill and AGENTS.md block now use `skills@skills` and `skills--v<VERSION>`, with steps for moving off the 0.1.x plugins.
+- **Trade-off (accepted by the owner):** Claude Code and Codex now install the workflow and `ios-design` together, so anyone wanting only `ios-design` also gets the workflow's SessionStart hook. `npx skills` still installs single skills, without the hook.
+- **Checks** (15 October 2026, macOS arm64, Node 22.15):
+  - `npm test` 47/47.
+  - `claude plugin validate .` and `claude plugin validate .claude-plugin/plugin.json` pass.
+  - **Claude**, isolated `CLAUDE_CONFIG_DIR`, from this checkout: `skills@skills` 0.2.0. `claude plugin details` lists 8 skills, 1 SessionStart hook, 0 agents, 0 MCP and 0 LSP servers, about 701 tokens always-on.
+  - **Codex** 0.159.2, scratch `CODEX_HOME`: `skills@skills` 0.2.0. `codex debug prompt-input` lists the 8 `skills:*` skills once each, with no hook text.
+  - **npx** `skills@1.5.18 --list`: 8 skills, with Handoff hidden.
+  - **Migration**, tested on a clone moved from `f5aef0a` (0.1.3) to this branch:
+    - Claude: uninstalling `workflow@skills` and `ios-design@skills`, `marketplace update skills` and installing `skills@skills` leaves only 0.2.0.
+    - Codex: removing both plugins, removing and re-adding the marketplace, and adding `skills@skills` leaves only `[plugins."skills@skills"]`, and each skill loads once.
+- **Not verified:** installing from GitHub at `skills--v0.2.0`, which doesn't exist until merge; the hook's output reaching the model in an authenticated session; Codex project config.
+
 ## Codex migration steps; workflow 0.1.3 — 15 October 2026
 
 - **Change:** the adopt skill's migration from the `a-stack` marketplace now removes each `<plugin>@a-stack` in Codex before removing the marketplace, and the README says the same. Workflow moves to 0.1.3.

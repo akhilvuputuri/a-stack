@@ -15,14 +15,22 @@ Merge these keys into the repository's committed `.claude/settings.json`, keepin
 
 ```json
 {
-  "enabledPlugins": { "skills@skills": true },
+  "enabledPlugins": {
+    "skills@skills": true
+  },
   "extraKnownMarketplaces": {
-    "skills": { "source": { "source": "github", "repo": "akhilvuputuri/skills", "ref": "skills--v<VERSION>" } }
+    "skills": {
+      "source": {
+        "source": "github",
+        "repo": "akhilvuputuri/skills",
+        "ref": "skills--v<VERSION>"
+      }
+    }
   }
 }
 ```
 
-Keep `enabledPlugins` before `extraKnownMarketplaces`, the order Claude Code writes, so that its marketplace commands leave the committed file unchanged.
+When a Claude Code plugin command changes `.claude/settings.json`, it rewrites the whole file in its own key order and 2-space formatting. Commit the file in that form, for example by committing what `claude plugin marketplace add … --scope project` writes, so that later commands leave it unchanged. With only these two keys, that is the form shown above. With other keys, let Claude Code write the file once and commit the result.
 
 Use the latest released `skills--v<VERSION>` tag (`git ls-remote --tags https://github.com/akhilvuputuri/skills 'skills--v*'`). Pinning means every contributor and session uses the same reviewed rules. Upgrading is a deliberate PR that changes the `ref`.
 

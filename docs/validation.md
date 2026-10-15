@@ -6,11 +6,16 @@
   - Plugins enabled by a repository's settings are at project scope, so `claude plugin uninstall` needs `--scope project`.
   - `claude plugin marketplace update` does not move a marketplace to a new ref. A pinned repository re-adds it at the new tag with `--scope project`, and must never run `marketplace remove`, which deletes the pin.
   - A marketplace added at a tag at user scope needs remove, then add.
-  - The settings examples put `enabledPlugins` first, the order Claude Code writes.
+  - The settings examples now match what Claude Code writes: `enabledPlugins` first, expanded 2-space JSON. The docs say that Claude Code rewrites the whole file in its own order and format, so a repository should commit the file in that form.
+  - The README's user-scope steps use `marketplace remove skills --scope user` and send project-scope installs to the adopt skill.
 - **Tested** (Claude Code 2.1.283, scratch homes, GitHub sources at `workflow--v0.1.3` and `skills--v0.2.0`):
-  - **Project scope:** without `--scope`, uninstall fails. Re-adding at the new tag with `--scope project` rewrote `.claude/settings.json` with `enabledPlugins` first and the same content. With the file committed in that order, the whole sequence leaves it byte-identical and ends with `skills@skills` 0.2.0 enabled. Found in the independent review of akhilvuputuri/PageStash#50 and re-tested there.
+  - **Project scope:** without `--scope`, uninstall fails. Re-adding at the new tag with `--scope project` rewrote `.claude/settings.json` in Claude Code's key order and expanded formatting, with the same content. With the file committed in that form, the whole sequence leaves it byte-identical and ends with `skills@skills` 0.2.0 enabled. Found in the independent review of akhilvuputuri/PageStash#50 and re-tested there.
   - **User scope at a tag:** `update` stays on the old tag. Adding at the new tag fails because "its network source differs from the one declared for it in settings". Remove, then add, installs 0.2.0.
 - **Hypothesis, not observed:** a restarted, trusted session reconciles a changed `ref` by itself.
+- **Independent review** (Opus 5.5) of `cbd873e`: **REQUEST CHANGES**. All three findings are fixed above; each was tested by the reviewer.
+  - **Low–medium:** the compact one-line examples were rewritten anyway, because Claude Code also reformats, and it moves other keys such as `env`.
+  - **Medium:** the README's `marketplace remove skills` without `--scope user` also deleted the pin of the repository the user was in.
+  - **Low–medium:** the README's project-scope uninstall, run before the repository moved off 0.1.x, rewrote the committed `enabledPlugins` to `{}`.
 
 ## One root plugin, skills 0.2.0 — 15 October 2026
 

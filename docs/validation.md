@@ -1,5 +1,18 @@
 # Validation status
 
+## Codex migration steps; workflow 0.1.3 — 15 October 2026
+
+- **Change:** the adopt skill's migration from the `a-stack` marketplace now removes each `<plugin>@a-stack` in Codex before removing the marketplace, and the README says the same. Workflow moves to 0.1.3.
+- **Why (tested):** this came from the independent review of akhilvuputuri/PageStash#48. In a scratch `CODEX_HOME` with codex-cli 0.159.2, `codex plugin marketplace remove a-stack` left `[plugins."workflow@a-stack"]` and `[plugins."ios-design@a-stack"]` enabled. `codex debug prompt-input` then listed every shared skill twice. Running `codex plugin remove` for each old plugin first left only the `@skills` entries.
+- **Release line.** Main gained ios-design 0.1.3 (#9) before this merged. The README examples now pin `workflow--v0.1.3`, which will also carry ios-design 0.1.3.
+- **Checks** (15 October 2026, macOS arm64, Node 22.15, after merging main): `npm test` 46/46 and `claude plugin validate .` pass.
+- **Independent review** (Opus 5.5) of `657eee1`: **APPROVE**.
+  - The reviewer ran the documented Codex steps from an old `a-stack` install in a scratch `CODEX_HOME`. Only the `@skills` entries remained.
+  - It reproduced the duplicate loading when only the marketplace is removed.
+  - It confirmed `codex plugin remove` still works after the marketplace is gone, and on a plugin that isn't installed.
+  - Two low findings, both fixed in the next head: this record lacked its checks and verdict, and the README's Codex step sat in the Claude paragraph.
+- **Not verified:** installing from GitHub at `workflow--v0.1.3`, which doesn't exist until merge, and Codex project config.
+
 ## ios-design 0.1.3: field notes from shipping PageStash — 15 October 2026
 
 Adds `references/implementation.md`, field notes from applying the skill end to end in PageStash, a SwiftUI reading app (iOS 17 target; Xcode 26.3 with the iOS 26.3 SDK locally, Xcode 16.4 in CI), across releases 0.3.0–0.4.1. Other changes:

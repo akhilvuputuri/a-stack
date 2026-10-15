@@ -33,6 +33,14 @@
   - **Both fixes falsified:** adding `workflows/`, `themes/`, `.app.json` or a root `SKILL.md` fails, and so does deleting any old release record.
   - **Info:** a local `.claude/` or `.codex/` folder, or a `.DS_Store` in a subfolder, also failed. Agents create these in checkouts but never load them from a plugin root, so the next head ignores them. Tested both ways: with `.claude/`, `.codex/` and `.claude-plugin/.DS_Store` present the test passes, and with `workflows/` it fails.
   - That head also adds the ios-design 0.1.3 release record above.
+- **Delta review** (Opus 5.5) of `351d3d0`: **APPROVE**.
+  - The reviewer read the binaries' strings: neither Claude Code nor Codex loads `.claude/` or `.codex/` from a plugin root.
+  - It checked every fact in the 0.1.3 record. On its wording nit, the merge flag is now marked as reported.
+  - It noted that committed content under those two folders would also be exempt.
+- **Devin Review of `351d3d0`:** 0 bugs, 0 vulnerabilities, 3 flags.
+  - **Agent folders lack git ignore rules:** fixed. The test now fails if anything under `.claude/`, `.codex/` or the other local-only paths is committed. Tested: a committed `.claude/skills/x/SKILL.md` fails.
+  - **Release-record coverage depends on fetched tags:** accepted. CI checks out with `fetch-depth: 0`, so it has every tag. A local clone without tags checks less, and never wrongly passes a tag it can see.
+  - **Current-head review record:** recorded on the PR. Writing a head's approval into that same head would create a new head.
 - **Not verified:** installing from GitHub at `skills--v0.2.0`, which doesn't exist until merge; the hook's output reaching the model in an authenticated session; Codex project config.
 
 ## Codex migration steps; workflow 0.1.3 — 15 October 2026
@@ -91,7 +99,7 @@ Evidence (reported from that project's records and CI, not re-run here):
 
 - **Release (recorded in #11).**
   - **Verified with git and the GitHub API:**
-    - PR #9 merged as `b3d41dc` with `--match-head-commit 2c7b9c0`. `b3d41dc` has parents `138eee4` and `2c7b9c0`, and its tree is identical to the approved head `2c7b9c0`.
+    - PR #9 merged as `b3d41dc`. Its second parent is the approved head `2c7b9c0` (first parent `138eee4`), and its tree is identical to `2c7b9c0`. The session that merged it reports using `--match-head-commit 2c7b9c0`.
     - The annotated tag `ios-design--v0.1.3` (`e402f52`) points at `b3d41dc`.
     - CI passed on `b3d41dc` (all six jobs).
   - **Reported by the session that made the release:**

@@ -109,6 +109,9 @@ test("skills/ holds exactly the instruction-only skills", () => {
 const HOOK_OUTPUT_LIMIT = 10000;
 
 test("the plugin's only hook prints CORE.md, and nothing else loads from the root", () => {
+  // The local-only folders are exempt only while nothing in them is committed.
+  const tracked = git(["ls-files", "--", ...LOCAL_ENTRIES]);
+  if (tracked !== null) assert.equal(tracked.toString("utf8"), "", "local-only paths must not be committed");
   const entries = fs.readdirSync(ROOT).filter((name) => !LOCAL_ENTRIES.includes(name));
   assert.deepEqual(entries.sort(), [...new Set(ROOT_ENTRIES)].sort(), "unexpected or missing top-level entry");
   assert.deepEqual(listing(".claude-plugin"), ["marketplace.json", "plugin.json", "releases.json"]);

@@ -1,4 +1,4 @@
-// Compile probe for APIs named in plugins/ios-design/skills/ios-design/references. Typecheck only; not shipped.
+// Compile probe for APIs named in skills/ios-design/references. Typecheck only; not shipped.
 // xcrun swiftc -typecheck -sdk "$(xcrun --sdk iphonesimulator --show-sdk-path)" \
 //   -target arm64-apple-ios26.0-simulator evals/ios-design/ApiProbe.swift
 import SwiftUI

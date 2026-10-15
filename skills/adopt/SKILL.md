@@ -16,27 +16,25 @@ Merge these keys into the repository's committed `.claude/settings.json`, keepin
 ```json
 {
   "extraKnownMarketplaces": {
-    "skills": { "source": { "source": "github", "repo": "akhilvuputuri/skills", "ref": "workflow--v<VERSION>" } }
+    "skills": { "source": { "source": "github", "repo": "akhilvuputuri/skills", "ref": "skills--v<VERSION>" } }
   },
-  "enabledPlugins": { "workflow@skills": true }
+  "enabledPlugins": { "skills@skills": true }
 }
 ```
 
-Use the latest released `workflow--v<VERSION>` tag (`git ls-remote --tags https://github.com/akhilvuputuri/skills 'workflow--v*'`). Pinning means every contributor and session uses the same reviewed rules. Upgrading is a deliberate PR that changes the `ref`.
+Use the latest released `skills--v<VERSION>` tag (`git ls-remote --tags https://github.com/akhilvuputuri/skills 'skills--v*'`). Pinning means every contributor and session uses the same reviewed rules. Upgrading is a deliberate PR that changes the `ref`.
 
-The marketplace has one `ref` for all its plugins, and a tag carries every plugin as of its commit. If the repository already pins a `ref` for this marketplace, for example `ios-design--v<x>`:
+The plugin carries the workflow skills and `ios-design` together, so one ref covers everything. **Pin only release tags.** A branch or untagged commit can change under the same version number, and Claude Code won't reinstall it. Never move a pin to an older tag.
 
-- **Keep it** when it is newer and already contains the workflow version you want. Check `.claude-plugin/marketplace.json` at that ref.
-- **Otherwise move to the newer tag** after confirming that it still contains the other plugins' versions you rely on. Never silently downgrade another plugin.
-- **Pin only tags.** Pin only a tag whose plugin versions are all released (tagged). An untagged version can still change under the same version number, and Claude Code won't reinstall it.
+**Moving off the 0.1.x plugins.** Up to 0.1.x the marketplace shipped two plugins, `workflow@skills` and `ios-design@skills`. From `skills--v0.2.0` it ships one, `skills@skills`. In a repository that pins the old plugins, in one PR: set the `ref` to the new tag; replace `workflow@skills` and `ios-design@skills` in `enabledPlugins` and `.codex/config.toml` with `skills@skills`; and update the AGENTS.md block's link, ref and plugin name. Each contributor then switches their own install: in Claude Code, `claude plugin uninstall` each old plugin; in Codex, `codex plugin remove` each old plugin, then `codex plugin marketplace remove skills`, add it again at the new ref and `codex plugin add skills@skills`.
 
-**Moving off the former `a-stack` name.** The repository and its marketplace were renamed from `akhilvuputuri/a-stack` (marketplace `a-stack`) to `akhilvuputuri/skills` (marketplace `skills`), starting with the `workflow--v0.1.2` and `ios-design--v0.1.2` tags. Older tags still declare the `a-stack` marketplace, so the new name needs a new tag. In a repository that pins `a-stack`, in one PR: rename the `a-stack` key in `extraKnownMarketplaces` to `skills` and point it at `akhilvuputuri/skills` and the new tag; rename every `<plugin>@a-stack` in `enabledPlugins` and `.codex/config.toml` to `<plugin>@skills`; and update the AGENTS.md block's link, ref and plugin names. Each contributor then switches their own registration: in Claude Code, `claude plugin marketplace remove a-stack` (adding the same source again does not register the new name while the old one exists); in Codex, `codex plugin remove <plugin>@a-stack` for each old plugin, then `codex plugin marketplace remove a-stack`, `codex plugin marketplace add akhilvuputuri/skills@<REF>` and `codex plugin add <plugin>@skills`. Removing only the Codex marketplace leaves its plugins enabled, so every skill loads twice; `codex plugin remove <plugin>@a-stack` still works after the marketplace is gone.
+**Moving off the former `a-stack` name.** The repository and its marketplace were renamed from `akhilvuputuri/a-stack` (marketplace `a-stack`) to `akhilvuputuri/skills` (marketplace `skills`), starting with the `workflow--v0.1.2` and `ios-design--v0.1.2` tags. Older tags still declare the `a-stack` marketplace, so the new name needs a new tag. In a repository that pins `a-stack`, in one PR: rename the `a-stack` key in `extraKnownMarketplaces` to `skills` and point it at `akhilvuputuri/skills` and the new tag; replace every `<plugin>@a-stack` in `enabledPlugins` and `.codex/config.toml` with `skills@skills` (from `skills--v0.2.0`); and update the AGENTS.md block's link, ref and plugin names. Each contributor then switches their own registration: in Claude Code, `claude plugin marketplace remove a-stack` (adding the same source again does not register the new name while the old one exists); in Codex, `codex plugin remove <plugin>@a-stack` for each old plugin, then `codex plugin marketplace remove a-stack`, `codex plugin marketplace add akhilvuputuri/skills@<REF>` and `codex plugin add skills@skills`. Removing only the Codex marketplace leaves its plugins enabled, so every skill loads twice; `codex plugin remove <plugin>@a-stack` still works after the marketplace is gone.
 
 Whichever ref you pin, write that actual ref in the AGENTS.md block, so that the CORE.md link matches what Claude Code loads.
 
 The plugin's SessionStart hook loads the core rules into every Claude Code session, and its skills load when a task matches them.
 
-For Codex, also commit `.codex/config.toml` with `[plugins."workflow@skills"]` and `enabled = true`. Each contributor runs `codex plugin marketplace add akhilvuputuri/skills@<REF>` and then `codex plugin add workflow@skills` once. Enabling a plugin in project config does not install it. Codex has no project-level marketplace pin, and the Codex plugin ships no hooks, so the AGENTS.md block below carries the rules for Codex. For other agents, `npx skills add https://github.com/akhilvuputuri/skills/tree/<REF>` installs the skills.
+For Codex, also commit `.codex/config.toml` with `[plugins."skills@skills"]` and `enabled = true`. Each contributor runs `codex plugin marketplace add akhilvuputuri/skills@<REF>` and then `codex plugin add skills@skills` once. Enabling a plugin in project config does not install it. Codex has no project-level marketplace pin, and the Codex plugin ships no hooks, so the AGENTS.md block below carries the rules for Codex. For other agents, `npx skills add https://github.com/akhilvuputuri/skills/tree/<REF>` installs the skills.
 
 ## 2. Add the workflow block to AGENTS.md
 

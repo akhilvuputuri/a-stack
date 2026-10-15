@@ -1,5 +1,48 @@
 # Validation status
 
+## One root plugin, skills 0.2.0 — 15 October 2026
+
+- **Change:** the repository root is now a single plugin, `skills@skills`, laid out like addyosmani/agent-skills and obra/superpowers (both checked on GitHub: one root plugin each, with `skills/` at the top). Before, it shipped two plugins under `plugins/`.
+  - Every instruction skill is in `skills/`: the seven workflow skills and `ios-design`. `CORE.md`, `hooks/hooks.json`, `.claude-plugin/plugin.json` and `.codex-plugin/` are at the root.
+  - Handoff moved from `skills/` to `handoff/`. Its development symlinks keep the same depth and still resolve. The installer and release build read the new path; the release ZIP layout is unchanged.
+  - **One version and tag:** `skills--v0.2.0`. The content digest covers only what the plugin ships (`skills/`, `CORE.md`, `hooks/`, both plugin manifests). Claude Code copies the whole root, but nothing else changes what a session loads.
+  - The released digests of the former `workflow` and `ios-design` plugins are still checked against their tags.
+  - A test keeps other plugin components (`commands/`, `agents/`, `.mcp.json` and the like) out of the root.
+  - The README, adopt skill and AGENTS.md block now use `skills@skills` and `skills--v<VERSION>`, with steps for moving off the 0.1.x plugins.
+- **Trade-off (accepted by the owner):** Claude Code and Codex now install the workflow and `ios-design` together, so anyone wanting only `ios-design` also gets the workflow's SessionStart hook. `npx skills` still installs single skills, without the hook.
+- **Checks** (15 October 2026, macOS arm64, Node 22.15):
+  - `npm test` 47/47 (unchanged after the review fixes, which only add assertions).
+  - `claude plugin validate .` and `claude plugin validate .claude-plugin/plugin.json` pass.
+  - **Claude**, isolated `CLAUDE_CONFIG_DIR`, from this checkout: `skills@skills` 0.2.0. `claude plugin details` lists 8 skills, 1 SessionStart hook, 0 agents, 0 MCP and 0 LSP servers, about 701 tokens always-on.
+  - **Codex** 0.159.2, scratch `CODEX_HOME`: `skills@skills` 0.2.0. `codex debug prompt-input` lists the 8 `skills:*` skills once each, with no hook text.
+  - **npx** `skills@1.5.18 --list`: 8 skills, with Handoff hidden.
+  - **Migration**, tested on a clone moved from `f5aef0a` (0.1.3) to this branch:
+    - Claude: uninstalling `workflow@skills` and `ios-design@skills`, `marketplace update skills` and installing `skills@skills` leaves only 0.2.0.
+    - Codex: removing both plugins, removing and re-adding the marketplace, and adding `skills@skills` leaves only `[plugins."skills@skills"]`, and each skill loads once.
+- **Independent review** (Opus 5.5) of `aa9b2bc`: **REQUEST CHANGES**.
+  - The reviewer confirmed the restructure:
+    - tampering with each of the 8 old release digests fails, and so does moving a tag;
+    - a simulated `skills--v0.2.0` tag verifies, and editing a skill under it fails;
+    - the Handoff release ZIP and one-file installer work from `handoff/`;
+    - from the binaries' strings (Claude Code 2.1.283, Codex 0.159.2), no other loaded component is present at the root.
+  - **Medium:** the root guard was a short block-list. It missed folders and files those binaries load (`workflows/`, `themes/`, `.app.json`, a root `SKILL.md`), so adding one would pass with no version bump. The test now allow-lists every top-level entry and the contents of `.claude-plugin/` and `.agents/`; a new entry fails until someone decides whether agents load it. Tested: adding `workflows/` fails.
+  - **Low:** deleting the old `workflow` or `ios-design` records from `releases.json` passed silently. Every `<name>--v<version>` tag must now have a record. Tested: deleting the `workflow` records fails.
+  - **Info:** `evals/` is the default folder for `claude plugin eval`. The existing `cases.json` evals use another format, so that command finds no cases. Sessions are unaffected.
+- **Delta review** (Opus 5.5) of `94d887d`: **APPROVE**.
+  - **No false positives:** the allow-list passed on a clean clone, after `build:native`, after `build-release`, and in a `git archive` export without `.git`.
+  - **Both fixes falsified:** adding `workflows/`, `themes/`, `.app.json` or a root `SKILL.md` fails, and so does deleting any old release record.
+  - **Info:** a local `.claude/` or `.codex/` folder, or a `.DS_Store` in a subfolder, also failed. Agents create these in checkouts but never load them from a plugin root, so the next head ignores them. Tested both ways: with `.claude/`, `.codex/` and `.claude-plugin/.DS_Store` present the test passes, and with `workflows/` it fails.
+  - That head also adds the ios-design 0.1.3 release record above.
+- **Delta review** (Opus 5.5) of `351d3d0`: **APPROVE**.
+  - The reviewer read the binaries' strings: neither Claude Code nor Codex loads `.claude/` or `.codex/` from a plugin root.
+  - It checked every fact in the 0.1.3 record. On its wording nit, the merge flag is now marked as reported.
+  - It noted that committed content under those two folders would also be exempt.
+- **Devin Review of `351d3d0`:** 0 bugs, 0 vulnerabilities, 3 flags.
+  - **Agent folders lack git ignore rules:** fixed. The test now fails if anything under `.claude/`, `.codex/` or the other local-only paths is committed. Tested: a committed `.claude/skills/x/SKILL.md` fails.
+  - **Release-record coverage depends on fetched tags:** accepted. CI checks out with `fetch-depth: 0`, so it has every tag. A local clone without tags checks less, and never wrongly passes a tag it can see.
+  - **Current-head review record:** recorded on the PR. Writing a head's approval into that same head would create a new head.
+- **Not verified:** installing from GitHub at `skills--v0.2.0`, which doesn't exist until merge; the hook's output reaching the model in an authenticated session; Codex project config.
+
 ## Codex migration steps; workflow 0.1.3 — 15 October 2026
 
 - **Change:** the adopt skill's migration from the `a-stack` marketplace now removes each `<plugin>@a-stack` in Codex before removing the marketplace, and the README says the same. Workflow moves to 0.1.3.
@@ -53,6 +96,15 @@ Evidence (reported from that project's records and CI, not re-run here):
 - **Ships as 0.1.3, not 0.1.2** (tag `ios-design--v0.1.3` on the merge commit): the rename PR (#8) merged first and released `ios-design--v0.1.2`, so this change was squashed onto `138eee4` as 0.1.3. Conflicts were confined to `releases.json` (0.1.2 kept, 0.1.3 added), the README release line and this file; the plugin folder merged cleanly. After the rebase, `npm run build:native`, `npm test` (46/46) and `claude plugin validate .` pass.
 - **Re-review of `694099f`: APPROVE (Opus 5.5).** Confirmed the skills folder is byte-identical to the approved `819702e`, the 0.1.2 digest is unchanged and 0.1.3 matches, and reran the checks (46/46). Two wording nits in this section were fixed.
 - **Devin Review of `694099f`:** one finding, fixed. The README's copyable pins (the `npx` tag URL, the Claude settings example and the Codex marketplace command) still named `workflow--v0.1.2`, which carries ios-design 0.1.2; they now pin `ios-design--v0.1.3`, which carries both current versions.
+
+- **Release (recorded in #11).**
+  - **Verified with git and the GitHub API:**
+    - PR #9 merged as `b3d41dc`. Its second parent is the approved head `2c7b9c0` (first parent `138eee4`), and its tree is identical to `2c7b9c0`. The session that merged it reports using `--match-head-commit 2c7b9c0`.
+    - The annotated tag `ios-design--v0.1.3` (`e402f52`) points at `b3d41dc`.
+    - CI passed on `b3d41dc` (all six jobs).
+  - **Reported by the session that made the release:**
+    - With an isolated `CLAUDE_CONFIG_DIR`, `claude plugin marketplace add akhilvuputuri/skills@ios-design--v0.1.3` installed ios-design 0.1.3 (with `references/implementation.md`) and workflow 0.1.2.
+    - A local `npm test` on the owner's Mac failed two or three different Handoff tests per run, at a load average of about 22. Hypothesis: flakiness under load, since CI passed and a later local run passed 46/46.
 
 ## Rename to akhilvuputuri/skills; workflow and ios-design 0.1.2 — 15 October 2026
 

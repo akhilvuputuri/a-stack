@@ -3,18 +3,10 @@
   "interface": { "displayName": "skills" },
   "plugins": [
     {
-      "name": "ios-design",
-      "version": "0.1.3",
-      "description": "Audit and refine native iPhone and iPad interfaces using a source-linked digest of Apple's Human Interface Guidelines",
-      "source": { "source": "local", "path": "./plugins/ios-design" },
-      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
-      "category": "Coding"
-    },
-    {
-      "name": "workflow",
-      "version": "0.1.3",
-      "description": "Engineering workflow for coding agents: fresh-state preflight, independent exact-head review, verified release, evidence-labelled journal, incident and experiment method, and repository adoption",
-      "source": { "source": "local", "path": "./plugins/workflow" },
+      "name": "skills",
+      "version": "0.2.0",
+      "description": "Engineering workflow for coding agents (fresh-state preflight, independent exact-head review, verified release, evidence-labelled journal, incident and experiment method, repository adoption) and native iPhone/iPad interface design from Apple's Human Interface Guidelines",
+      "source": { "source": "local", "path": "./" },
       "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
       "category": "Coding"
     }

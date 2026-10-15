@@ -11,7 +11,7 @@
   - The README, adopt skill and AGENTS.md block now use `skills@skills` and `skills--v<VERSION>`, with steps for moving off the 0.1.x plugins.
 - **Trade-off (accepted by the owner):** Claude Code and Codex now install the workflow and `ios-design` together, so anyone wanting only `ios-design` also gets the workflow's SessionStart hook. `npx skills` still installs single skills, without the hook.
 - **Checks** (15 October 2026, macOS arm64, Node 22.15):
-  - `npm test` 47/47.
+  - `npm test` 47/47 (unchanged after the review fixes, which only add assertions).
   - `claude plugin validate .` and `claude plugin validate .claude-plugin/plugin.json` pass.
   - **Claude**, isolated `CLAUDE_CONFIG_DIR`, from this checkout: `skills@skills` 0.2.0. `claude plugin details` lists 8 skills, 1 SessionStart hook, 0 agents, 0 MCP and 0 LSP servers, about 701 tokens always-on.
   - **Codex** 0.159.2, scratch `CODEX_HOME`: `skills@skills` 0.2.0. `codex debug prompt-input` lists the 8 `skills:*` skills once each, with no hook text.
@@ -19,6 +19,15 @@
   - **Migration**, tested on a clone moved from `f5aef0a` (0.1.3) to this branch:
     - Claude: uninstalling `workflow@skills` and `ios-design@skills`, `marketplace update skills` and installing `skills@skills` leaves only 0.2.0.
     - Codex: removing both plugins, removing and re-adding the marketplace, and adding `skills@skills` leaves only `[plugins."skills@skills"]`, and each skill loads once.
+- **Independent review** (Opus 5.5) of `aa9b2bc`: **REQUEST CHANGES**.
+  - The reviewer confirmed the restructure:
+    - tampering with each of the 8 old release digests fails, and so does moving a tag;
+    - a simulated `skills--v0.2.0` tag verifies, and editing a skill under it fails;
+    - the Handoff release ZIP and one-file installer work from `handoff/`;
+    - from the binaries' strings (Claude Code 2.1.283, Codex 0.159.2), no other loaded component is present at the root.
+  - **Medium:** the root guard was a short block-list. It missed folders and files those binaries load (`workflows/`, `themes/`, `.app.json`, a root `SKILL.md`), so adding one would pass with no version bump. The test now allow-lists every top-level entry and the contents of `.claude-plugin/` and `.agents/`; a new entry fails until someone decides whether agents load it. Tested: adding `workflows/` fails.
+  - **Low:** deleting the old `workflow` or `ios-design` records from `releases.json` passed silently. Every `<name>--v<version>` tag must now have a record. Tested: deleting the `workflow` records fails.
+  - **Info:** `evals/` is the default folder for `claude plugin eval`. The existing `cases.json` evals use another format, so that command finds no cases. Sessions are unaffected.
 - **Not verified:** installing from GitHub at `skills--v0.2.0`, which doesn't exist until merge; the hook's output reaching the model in an authenticated session; Codex project config.
 
 ## Codex migration steps; workflow 0.1.3 — 15 October 2026

@@ -17,8 +17,17 @@ const HANDOFF_SKILLS = ["publish-handoff", "resume-handoff"];
 // What the plugin ships to agents. Claude Code copies the whole root, but only these paths
 // change what a session loads, so they define the plugin's content for versioning.
 const CONTENT = [".claude-plugin/plugin.json", ".codex-plugin", "CORE.md", "hooks", "skills"];
-// Component paths Claude Code would load from a plugin root. Only skills/ and hooks/ belong.
-const UNEXPECTED_COMPONENTS = ["agents", "commands", "output-styles", "monitors", "bin", ".mcp.json", ".lsp.json", "settings.json"];
+// Claude Code and Codex load components from fixed paths in a plugin root (commands/, agents/,
+// workflows/, themes/, .mcp.json, .app.json, a root SKILL.md and more, growing over time).
+// So the root is an allow-list: a new top-level entry needs a deliberate decision about
+// whether agents load it, and if they do, it belongs in CONTENT and the version.
+const ROOT_ENTRIES = [
+  ...CONTENT.map((item) => item.split("/")[0]),
+  ".agents", ".github", ".gitignore", "AGENTS.md", "README.md", "REVIEW.md", "VERSION",
+  "docs", "evals", "handoff", "native", "package.json", "schema", "tests", "tools",
+];
+// Untracked local state that never reaches GitHub (see .gitignore).
+const LOCAL_ENTRIES = [".git", ".DS_Store", "node_modules", "dist"];
 const marketplace = readJson(".claude-plugin/marketplace.json");
 const codexMarketplace = readJson(".agents/plugins/marketplace.json");
 const plugin = marketplace.plugins[0];
@@ -98,8 +107,11 @@ test("skills/ holds exactly the instruction-only skills", () => {
 const HOOK_OUTPUT_LIMIT = 10000;
 
 test("the plugin's only hook prints CORE.md, and nothing else loads from the root", () => {
-  for (const name of UNEXPECTED_COMPONENTS)
-    assert.ok(!fs.existsSync(path.join(ROOT, name)), "unexpected plugin component at the root: " + name);
+  const entries = fs.readdirSync(ROOT).filter((name) => !LOCAL_ENTRIES.includes(name));
+  assert.deepEqual(entries.sort(), [...new Set(ROOT_ENTRIES)].sort(), "unexpected or missing top-level entry");
+  assert.deepEqual(fs.readdirSync(path.join(ROOT, ".claude-plugin")).sort(), ["marketplace.json", "plugin.json", "releases.json"]);
+  assert.deepEqual(fs.readdirSync(path.join(ROOT, ".agents")), ["plugins"]);
+  assert.deepEqual(fs.readdirSync(path.join(ROOT, ".agents/plugins")), ["marketplace.json"]);
   assert.deepEqual(fs.readdirSync(path.join(ROOT, "hooks")), ["hooks.json"]);
   assert.deepEqual(readJson("hooks/hooks.json"), {
     hooks: {
@@ -213,6 +225,11 @@ function taggedDigest(tag, source) {
 test("released versions keep the digest of their tagged content", (t) => {
   if (git(["rev-parse", "--is-inside-work-tree"]) === null) return t.skip("not a git checkout");
   const releases = readJson(".claude-plugin/releases.json");
+  // Every release tag keeps its record, so a released digest can't be dropped silently.
+  for (const tag of git(["tag", "-l", "*--v*"]).toString("utf8").split("\n").filter(Boolean)) {
+    const [, name, version] = /^(.+)--v(\d+\.\d+\.\d+)$/.exec(tag) || [];
+    assert.ok(name && (releases[name] || {})[version], tag + " is released but has no record in releases.json");
+  }
   // Check every recorded release, including the former workflow and ios-design plugins.
   for (const [name, versions] of Object.entries(releases)) {
     for (const [version, recorded] of Object.entries(versions)) {

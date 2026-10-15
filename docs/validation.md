@@ -16,6 +16,11 @@
   - **Low–medium:** the compact one-line examples were rewritten anyway, because Claude Code also reformats, and it moves other keys such as `env`.
   - **Medium:** the README's `marketplace remove skills` without `--scope user` also deleted the pin of the repository the user was in.
   - **Low–medium:** the README's project-scope uninstall, run before the repository moved off 0.1.x, rewrote the committed `enabledPlugins` to `{}`.
+- **Devin Review of `b75d99e`:** one bug, fixed.
+  - A project-scope install without a repository pin matched neither README bullet. The user bullet's unscoped install would then turn the workflow rules on in every repository.
+  - The README now keeps the scope `claude plugin list` shows, through uninstall and install, and says an unscoped install is user scope.
+  - Devin's flag about the review record is handled on the PR, as in #10 and #11.
+- **Independent delta review** (Opus 5.5) of `b75d99e`: **APPROVE**. The reviewer committed the adopt example verbatim and ran the project-scope sequence; the file stayed byte-identical. It also ran the README user-scope steps, and confirmed `remove --scope user` leaves a repository's pin untouched.
 
 ## One root plugin, skills 0.2.0 — 15 October 2026
 

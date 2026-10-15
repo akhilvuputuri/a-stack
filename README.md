@@ -38,8 +38,14 @@ codex plugin add skills@skills
 
 Up to 0.1.x this repository shipped two plugins, `workflow@skills` and `ios-design@skills`, and before that a marketplace called `a-stack`. From 0.2.0 the repository root is a single plugin, `skills@skills`.
 
-- **Claude Code**, for a user install like the one above: `claude plugin uninstall workflow@skills` and `claude plugin uninstall ios-design@skills`, then `claude plugin marketplace update skills` and install as above. If you added the marketplace at a tag (`akhilvuputuri/skills@<tag>`), `update` stays on that tag and adding it at another tag fails. In that case run `claude plugin marketplace remove skills --scope user` and add it again at the new tag. Without `--scope user`, `remove` also deletes the pin of any repository you are in.
-- **Claude Code, plugins at project scope** (enabled by a repository's pin): follow [the adopt skill](skills/adopt/SKILL.md) after the repository's settings have moved to `skills@skills`. Uninstalling at project scope before that rewrites the committed settings. If you still have `a-stack`, `claude plugin marketplace remove a-stack` removes it with its plugins.
+- **Claude Code:** keep the scope each old plugin has, as `claude plugin list` shows it (`user`, `project` or `local`).
+  1. Make the marketplace offer 0.2.x.
+     - Added from the default branch: `claude plugin marketplace update skills`.
+     - Added at a tag at user scope (`akhilvuputuri/skills@<tag>`): `update` stays on that tag, and adding it at another tag fails. Run `claude plugin marketplace remove skills --scope user`, then add it again at the new tag. Without `--scope user`, `remove` also deletes the pin of any repository you are in.
+  2. Run `claude plugin uninstall workflow@skills --scope <scope>` and `claude plugin uninstall ios-design@skills --scope <scope>`.
+  3. Run `claude plugin install skills@skills --scope <scope>`. An install without `--scope` is user scope, which turns the workflow's always-on rules on in every repository.
+  - If a repository's `.claude/settings.json` pins the marketplace, follow [the adopt skill](skills/adopt/SKILL.md) instead, after that file has moved to `skills@skills`. Uninstalling at project scope before then rewrites the committed settings.
+  - If you still have `a-stack`, `claude plugin marketplace remove a-stack` removes it with its plugins.
 - **Codex:** `codex plugin remove workflow@skills` and `codex plugin remove ios-design@skills` (or `…@a-stack`), then `codex plugin marketplace remove skills` (or `a-stack`) and add it again as above. Removing only a marketplace leaves its plugins enabled, so every skill loads twice; `codex plugin remove` still works after the marketplace is gone.
 
 ## Engineering workflow for every repository

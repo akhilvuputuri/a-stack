@@ -26,8 +26,10 @@ const ROOT_ENTRIES = [
   ".agents", ".github", ".gitignore", "AGENTS.md", "README.md", "REVIEW.md", "VERSION",
   "docs", "evals", "handoff", "native", "package.json", "schema", "tests", "tools",
 ];
-// Untracked local state that never reaches GitHub (see .gitignore).
-const LOCAL_ENTRIES = [".git", ".DS_Store", "node_modules", "dist"];
+// Local state that never reaches GitHub: git, Finder, build output, and the per-checkout
+// .claude/ and .codex/ folders that agents create. Neither agent loads those from a plugin root.
+const LOCAL_ENTRIES = [".git", ".DS_Store", "node_modules", "dist", ".claude", ".codex"];
+const listing = (dir) => fs.readdirSync(path.join(ROOT, dir)).filter((name) => name !== ".DS_Store").sort();
 const marketplace = readJson(".claude-plugin/marketplace.json");
 const codexMarketplace = readJson(".agents/plugins/marketplace.json");
 const plugin = marketplace.plugins[0];
@@ -109,10 +111,10 @@ const HOOK_OUTPUT_LIMIT = 10000;
 test("the plugin's only hook prints CORE.md, and nothing else loads from the root", () => {
   const entries = fs.readdirSync(ROOT).filter((name) => !LOCAL_ENTRIES.includes(name));
   assert.deepEqual(entries.sort(), [...new Set(ROOT_ENTRIES)].sort(), "unexpected or missing top-level entry");
-  assert.deepEqual(fs.readdirSync(path.join(ROOT, ".claude-plugin")).sort(), ["marketplace.json", "plugin.json", "releases.json"]);
-  assert.deepEqual(fs.readdirSync(path.join(ROOT, ".agents")), ["plugins"]);
-  assert.deepEqual(fs.readdirSync(path.join(ROOT, ".agents/plugins")), ["marketplace.json"]);
-  assert.deepEqual(fs.readdirSync(path.join(ROOT, "hooks")), ["hooks.json"]);
+  assert.deepEqual(listing(".claude-plugin"), ["marketplace.json", "plugin.json", "releases.json"]);
+  assert.deepEqual(listing(".agents"), ["plugins"]);
+  assert.deepEqual(listing(".agents/plugins"), ["marketplace.json"]);
+  assert.deepEqual(listing("hooks"), ["hooks.json"]);
   assert.deepEqual(readJson("hooks/hooks.json"), {
     hooks: {
       SessionStart: [
@@ -143,7 +145,7 @@ test("the Codex marketplace and manifest mirror the Claude marketplace", () => {
   // drops the Claude hook's args. Point Codex at an explicit empty hooks file instead.
   assert.equal(manifest.hooks, "./.codex-plugin/hooks.json");
   assert.deepEqual(readJson(".codex-plugin/hooks.json"), { hooks: {} });
-  assert.deepEqual(fs.readdirSync(path.join(ROOT, ".codex-plugin")).sort(), ["hooks.json", "plugin.json"]);
+  assert.deepEqual(listing(".codex-plugin"), ["hooks.json", "plugin.json"]);
 });
 
 test("handoff/ holds only Handoff, hidden from `npx skills` discovery", () => {

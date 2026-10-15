@@ -15,18 +15,26 @@ Merge these keys into the repository's committed `.claude/settings.json`, keepin
 
 ```json
 {
+  "enabledPlugins": { "skills@skills": true },
   "extraKnownMarketplaces": {
     "skills": { "source": { "source": "github", "repo": "akhilvuputuri/skills", "ref": "skills--v<VERSION>" } }
-  },
-  "enabledPlugins": { "skills@skills": true }
+  }
 }
 ```
+
+Keep `enabledPlugins` before `extraKnownMarketplaces`, the order Claude Code writes, so that its marketplace commands leave the committed file unchanged.
 
 Use the latest released `skills--v<VERSION>` tag (`git ls-remote --tags https://github.com/akhilvuputuri/skills 'skills--v*'`). Pinning means every contributor and session uses the same reviewed rules. Upgrading is a deliberate PR that changes the `ref`.
 
 The plugin carries the workflow skills and `ios-design` together, so one ref covers everything. **Pin only release tags.** A branch or untagged commit can change under the same version number, and Claude Code won't reinstall it. Never move a pin to an older tag.
 
-**Moving off the 0.1.x plugins.** Up to 0.1.x the marketplace shipped two plugins, `workflow@skills` and `ios-design@skills`. From `skills--v0.2.0` it ships one, `skills@skills`. In a repository that pins the old plugins, in one PR: set the `ref` to the new tag; replace `workflow@skills` and `ios-design@skills` in `enabledPlugins` and `.codex/config.toml` with `skills@skills`; and update the AGENTS.md block's link, ref and plugin name. Each contributor then switches their own install: in Claude Code, `claude plugin uninstall` each old plugin; in Codex, `codex plugin remove` each old plugin, then `codex plugin marketplace remove skills`, add it again at the new ref and `codex plugin add skills@skills`.
+**Moving off the 0.1.x plugins.** Up to 0.1.x the marketplace shipped two plugins, `workflow@skills` and `ios-design@skills`. From `skills--v0.2.0` it ships one, `skills@skills`. In a repository that pins the old plugins, in one PR: set the `ref` to the new tag; replace `workflow@skills` and `ios-design@skills` in `enabledPlugins` and `.codex/config.toml` with `skills@skills`; and update the AGENTS.md block's link, ref and plugin name. Each contributor then switches their own install. **In Claude Code**, the old plugins show as disabled after the pull, at project scope:
+  1. Run `claude plugin uninstall <plugin>@skills --scope project` for each old plugin, using the scope `claude plugin list` shows.
+  2. Restart Claude Code in the folder.
+  3. If `skills@skills` is still not enabled, run `claude plugin marketplace add akhilvuputuri/skills@<REF> --scope project` and `claude plugin install skills@skills --scope project`. `claude plugin marketplace update` does not move a marketplace to a new ref.
+  4. Never run `claude plugin marketplace remove skills` in a pinned repository: it deletes the pin from `.claude/settings.json`.
+
+**In Codex**, `codex plugin remove` each old plugin, then `codex plugin marketplace remove skills`, add it again at the new ref and `codex plugin add skills@skills`.
 
 **Moving off the former `a-stack` name.** The repository and its marketplace were renamed from `akhilvuputuri/a-stack` (marketplace `a-stack`) to `akhilvuputuri/skills` (marketplace `skills`), starting with the `workflow--v0.1.2` and `ios-design--v0.1.2` tags. Older tags still declare the `a-stack` marketplace, so the new name needs a new tag. In a repository that pins `a-stack`, in one PR: rename the `a-stack` key in `extraKnownMarketplaces` to `skills` and point it at `akhilvuputuri/skills` and the new tag; replace every `<plugin>@a-stack` in `enabledPlugins` and `.codex/config.toml` with `skills@skills` (from `skills--v0.2.0`); and update the AGENTS.md block's link, ref and plugin names. Each contributor then switches their own registration: in Claude Code, `claude plugin marketplace remove a-stack` (adding the same source again does not register the new name while the old one exists); in Codex, `codex plugin remove <plugin>@a-stack` for each old plugin, then `codex plugin marketplace remove a-stack`, `codex plugin marketplace add akhilvuputuri/skills@<REF>` and `codex plugin add skills@skills`. Removing only the Codex marketplace leaves its plugins enabled, so every skill loads twice; `codex plugin remove <plugin>@a-stack` still works after the marketplace is gone.
 

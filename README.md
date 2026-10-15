@@ -10,7 +10,7 @@ Any agent (Claude Code, Codex, Cursor, Copilot, Gemini and [70+ more](https://gi
 npx skills add akhilvuputuri/skills
 ```
 
-This installs the skills in [`skills/`](skills). Add `--list` to browse, `--skill <name>` to pick, `-g` for every project, and `-a <agent>` to choose agents. For a reviewed release instead of the default branch, use a tag URL such as `npx skills add https://github.com/akhilvuputuri/skills/tree/skills--v0.2.0`.
+This installs the skills in [`skills/`](skills). Add `--list` to browse, `--skill <name>` to pick, `-g` for every project, and `-a <agent>` to choose agents. For a reviewed release instead of the default branch, use a tag URL such as `npx skills add https://github.com/akhilvuputuri/skills/tree/skills--v0.2.1`.
 
 **Claude Code:** the plugin is recommended, because only the Claude plugin adds the workflow's always-on core rules (a SessionStart hook). The Codex plugin deliberately ships no hooks.
 
@@ -38,7 +38,7 @@ codex plugin add skills@skills
 
 Up to 0.1.x this repository shipped two plugins, `workflow@skills` and `ios-design@skills`, and before that a marketplace called `a-stack`. From 0.2.0 the repository root is a single plugin, `skills@skills`.
 
-- **Claude Code:** `claude plugin uninstall workflow@skills` and `claude plugin uninstall ios-design@skills`, then `claude plugin marketplace update skills` and install as above. If you still have `a-stack`, `claude plugin marketplace remove a-stack` removes it with its plugins.
+- **Claude Code:** `claude plugin uninstall workflow@skills` and `claude plugin uninstall ios-design@skills`, adding `--scope project` when `claude plugin list` shows that scope (plugins enabled by a repository's settings). Then `claude plugin marketplace update skills` and install as above. If you added the marketplace at a tag (`akhilvuputuri/skills@<tag>`), `update` stays on that tag and adding it at another tag fails. Run `claude plugin marketplace remove skills` and add it again at the new tag. For a repository pin, follow the `adopt` skill instead, because removing a marketplace declared in project settings deletes the pin. If you still have `a-stack`, `claude plugin marketplace remove a-stack` removes it with its plugins.
 - **Codex:** `codex plugin remove workflow@skills` and `codex plugin remove ios-design@skills` (or `…@a-stack`), then `codex plugin marketplace remove skills` (or `a-stack`) and add it again as above. Removing only a marketplace leaves its plugins enabled, so every skill loads twice; `codex plugin remove` still works after the marketplace is gone.
 
 ## Engineering workflow for every repository
@@ -69,21 +69,23 @@ Commit this to the repository's `.claude/settings.json`:
 
 ```json
 {
+  "enabledPlugins": { "skills@skills": true },
   "extraKnownMarketplaces": {
-    "skills": { "source": { "source": "github", "repo": "akhilvuputuri/skills", "ref": "skills--v0.2.0" } }
-  },
-  "enabledPlugins": { "skills@skills": true }
+    "skills": { "source": { "source": "github", "repo": "akhilvuputuri/skills", "ref": "skills--v0.2.1" } }
+  }
 }
 ```
 
-For Codex, each contributor runs `codex plugin marketplace add akhilvuputuri/skills@skills--v0.2.0` and then `codex plugin add skills@skills` once. The repository's `.codex/config.toml` then keeps the plugin enabled in that trusted project. Enabling it there does not install it.
+Keep `enabledPlugins` first. That is the order Claude Code writes, so its marketplace commands leave the committed file unchanged.
+
+For Codex, each contributor runs `codex plugin marketplace add akhilvuputuri/skills@skills--v0.2.1` and then `codex plugin add skills@skills` once. The repository's `.codex/config.toml` then keeps the plugin enabled in that trusted project. Enabling it there does not install it.
 
 ```toml
 [plugins."skills@skills"]
 enabled = true
 ```
 
-The current release is `skills--v0.2.0`. Pin only release tags, never a branch.
+The current release is `skills--v0.2.1`. Pin only release tags, never a branch.
 
 ### Releasing
 

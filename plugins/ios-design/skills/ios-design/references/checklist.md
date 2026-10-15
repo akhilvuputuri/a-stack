@@ -6,7 +6,8 @@ Run the rows that apply to the change. Record each as observed, not run (with re
 | --- | --- |
 | Build | Project builds for the deployment target and for the latest SDK; newer APIs are availability-gated with a working fallback. |
 | Tests | Existing unit and UI tests pass; accessibility identifiers used by UI tests are unchanged. |
-| Appearance | Light, Dark, each custom theme, and System; switching themes while a sheet is open; a reading theme stays scoped to the reader (including its sheets and large title), so going back restores the system style in the rest of the app. |
+| Appearance | Light, Dark, each custom theme, and System; switching themes while a sheet is open; the theme applies exactly where the product decided (reader only, including its sheets and large title, or the whole app) and nowhere else. |
+| Icon | Every icon variant is 1024×1024 and not blank, and the default icon is opaque (checked in CI). The real Home Screen shows it at small sizes; dark and tinted styles are switched from Home Screen Edit > Customize (simulator or device). |
 | Text size | Default, largest standard (xxxLarge), and largest accessibility size (AX5), plus Bold Text. No clipped or overlapping text; no more truncation at AX sizes than at xxxLarge; rows grow; inline items stack; toolbars still fit. |
 | Contrast | At default settings, in every theme: text below 18 pt (below 14 pt if bold) meets 4.5:1; larger text and essential icons meet 3:1. This follows WCAG AA, which is stricter than Apple's HIG table for small bold text. Then recheck with Increase Contrast on. |
 | Materials | Reduce Transparency on, alone and together with Increase Contrast and Dark Mode; custom glass and overlays stay legible. Liquid Glass clear and tinted appearance preferences. |
@@ -19,4 +20,4 @@ Run the rows that apply to the change. Record each as observed, not run (with re
 | Layout | Smallest supported iPhone, largest iPhone, landscape where supported, and iPad if the app runs there. Content clears bottom search and toolbars. |
 | Feedback | Haptics fire once at commitment; no haptic on scroll or passive updates. |
 
-Simulator settings: Settings > Accessibility > Display & Text Size (Bold Text, Larger Text, Increase Contrast, Reduce Transparency), Motion > Reduce Motion; Display & Brightness > Liquid Glass for Clear or Tinted (iOS 26.1 and later). Xcode's Environment Overrides and Accessibility Inspector cover most of these quickly. SwiftUI previews can pin `\.dynamicTypeSize`, `\.colorScheme`, and `\.legibilityWeight` for fast iteration, but confirm in the simulator.
+Pass the device UDID to every `simctl` command when more than one simulator is booted. Simulator settings: Settings > Accessibility > Display & Text Size (Bold Text, Larger Text, Increase Contrast, Reduce Transparency), Motion > Reduce Motion; Display & Brightness > Liquid Glass for Clear or Tinted (iOS 26.1 and later). Xcode's Environment Overrides and Accessibility Inspector cover most of these quickly. SwiftUI previews can pin `\.dynamicTypeSize`, `\.colorScheme`, and `\.legibilityWeight` for fast iteration, but confirm in the simulator.

@@ -20,7 +20,7 @@ claude plugin install workflow@skills
 claude plugin install ios-design@skills
 ```
 
-If you added this marketplace under its former name, `a-stack`, remove it first with `claude plugin marketplace remove a-stack`; installed `<plugin>@a-stack` plugins go with it. In Codex, run `codex plugin remove workflow@a-stack` (and `ios-design@a-stack`) before `codex plugin marketplace remove a-stack`; removing only the marketplace leaves the old plugins enabled.
+If you added this marketplace under its former name, `a-stack`, remove it first with `claude plugin marketplace remove a-stack`; installed `<plugin>@a-stack` plugins go with it.
 
 **Codex** (CLI plugin marketplace):
 
@@ -29,6 +29,8 @@ codex plugin marketplace add akhilvuputuri/skills
 codex plugin add workflow@skills
 codex plugin add ios-design@skills
 ```
+
+If you added this marketplace under its former name, `a-stack`, first run `codex plugin remove workflow@a-stack` and `codex plugin remove ios-design@a-stack`, then `codex plugin marketplace remove a-stack`. Removing only the marketplace leaves the old plugins enabled, so every skill loads twice; the plugin removals still work after the marketplace is gone.
 
 **Handoff** needs a compiled helper per platform, so it installs only through the [release installer](#install-without-cloning). `npx skills` hides it.
 
@@ -80,7 +82,7 @@ For Codex, each contributor runs `codex plugin marketplace add akhilvuputuri/ski
 enabled = true
 ```
 
-The marketplace has one `ref`, and a tag carries every plugin as of its commit. Current releases are `workflow--v0.1.3` and `ios-design--v0.1.2`; the `workflow--v0.1.3` tag also carries `ios-design` 0.1.2. Pin only a tag at which every plugin version you use is itself tagged. The `adopt` skill handles an existing pin without downgrading other plugins.
+The marketplace has one `ref`, and a tag carries every plugin as of its commit. Current releases are `workflow--v0.1.3` and `ios-design--v0.1.3`. The `workflow--v0.1.3` commit also carries ios-design 0.1.3, so pinning it gives both current versions. Pin only a tag at which every plugin version you use is itself tagged. The `adopt` skill handles an existing pin without downgrading other plugins.
 
 ### Releasing a plugin
 

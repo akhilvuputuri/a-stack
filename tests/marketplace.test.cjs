@@ -6,24 +6,26 @@ const fs = require("node:fs");
 const path = require("node:path");
 const { spawnSync } = require("node:child_process");
 const ROOT = path.resolve(__dirname, "..");
-// Only instruction-only plugins ship through the plugin marketplaces. Each lives at
-// plugins/<name>/skills/<skill>/SKILL.md, the layout Claude Code, Codex and `npx skills`
-// all discover. Handoff needs the bundled native addon, which only the release installer
-// provides, so it stays in skills/ and is hidden from `npx skills`.
-// Each plugin's exact skill inventory. Only workflow carries the Claude SessionStart hook.
-const PLUGIN_SKILLS = {
-  "ios-design": ["ios-design"],
-  workflow: ["adopt", "experiment", "incident", "independent-review", "journal", "preflight", "ship"],
-};
-const PLUGINS = Object.keys(PLUGIN_SKILLS);
-const HOOK_PLUGINS = ["workflow"];
+// The repository root is a single plugin, like addyosmani/agent-skills and obra/superpowers.
+// Its instruction-only skills live at skills/<skill>/SKILL.md, the layout Claude Code, Codex
+// and `npx skills` all discover. Handoff needs the bundled native addon, which only the
+// release installer provides, so it lives in handoff/ and is hidden from `npx skills`.
+const PLUGIN = "skills";
+const WORKFLOW_SKILLS = ["adopt", "experiment", "incident", "independent-review", "journal", "preflight", "ship"];
+const SKILLS = [...WORKFLOW_SKILLS, "ios-design"];
 const HANDOFF_SKILLS = ["publish-handoff", "resume-handoff"];
-const marketplace = JSON.parse(
-  fs.readFileSync(path.join(ROOT, ".claude-plugin/marketplace.json"), "utf8"),
-);
-const codexMarketplace = JSON.parse(
-  fs.readFileSync(path.join(ROOT, ".agents/plugins/marketplace.json"), "utf8"),
-);
+// What the plugin ships to agents. Claude Code copies the whole root, but only these paths
+// change what a session loads, so they define the plugin's content for versioning.
+const CONTENT = [".claude-plugin/plugin.json", ".codex-plugin", "CORE.md", "hooks", "skills"];
+// Component paths Claude Code would load from a plugin root. Only skills/ and hooks/ belong.
+const UNEXPECTED_COMPONENTS = ["agents", "commands", "output-styles", "monitors", "bin", ".mcp.json", ".lsp.json", "settings.json"];
+const marketplace = readJson(".claude-plugin/marketplace.json");
+const codexMarketplace = readJson(".agents/plugins/marketplace.json");
+const plugin = marketplace.plugins[0];
+
+function readJson(relative) {
+  return JSON.parse(fs.readFileSync(path.join(ROOT, relative), "utf8"));
+}
 function walk(dir, out = []) {
   for (const entry of fs.readdirSync(dir, { withFileTypes: true })) {
     if (entry.name === ".DS_Store") continue; // Finder metadata; git-ignored and never shipped.
@@ -33,27 +35,32 @@ function walk(dir, out = []) {
   }
   return out;
 }
+function contentFiles(root) {
+  const files = [];
+  for (const item of CONTENT) {
+    const full = path.join(root, item);
+    if (fs.lstatSync(full).isDirectory()) files.push(...walk(full).filter((f) => fs.lstatSync(f).isFile()));
+    else files.push(full);
+  }
+  return files.map((f) => path.relative(root, f).split(path.sep).join("/")).sort();
+}
 
-test("marketplace lists exactly the allowlisted instruction-only skills", () => {
+test("the marketplace lists the root as its one plugin", () => {
   assert.equal(marketplace.name, "skills");
   assert.ok(marketplace.owner && marketplace.owner.name);
-  assert.deepEqual(
-    marketplace.plugins.map((plugin) => plugin.name).sort(),
-    [...PLUGINS].sort(),
-  );
+  assert.equal(marketplace.plugins.length, 1);
+  assert.equal(plugin.name, PLUGIN);
+  assert.equal(plugin.source, "./");
+  assert.equal(plugin.skills, undefined, "the plugin uses the default skills/ scan");
+  assert.match(plugin.version, /^\d+\.\d+\.\d+$/);
+  assert.ok(plugin.description);
+  const manifest = readJson(".claude-plugin/plugin.json");
+  assert.equal(manifest.name, plugin.name);
+  assert.equal(manifest.version, plugin.version);
+  assert.equal(manifest.description, plugin.description);
+  for (const key of ["skills", "hooks", "commands", "agents", "mcpServers"])
+    assert.equal(manifest[key], undefined, "plugin.json must not add " + key);
 });
-
-function assertInstructionOnly(dir, allowed) {
-  for (const file of walk(dir)) {
-    const info = fs.lstatSync(file);
-    assert.ok(!info.isSymbolicLink(), "plugin files cannot be symlinks: " + file);
-    const relative = path.relative(dir, file).split(path.sep).join("/");
-    assert.ok(
-      info.isDirectory() || file.endsWith(".md") || allowed.includes(relative),
-      "unexpected plugin file: " + file,
-    );
-  }
-}
 
 // Skill frontmatter can declare hooks, tools and other behavior that runs when the skill
 // is invoked. Marketplace skills are instructions only, so allow exactly name and description.
@@ -66,135 +73,107 @@ function assertPlainFrontmatter(text, name) {
   const keys = frontmatter(text, name).split("\n").map((line) => line.split(":")[0]);
   assert.deepEqual(keys, ["name", "description"], name + ": frontmatter may hold only name and description");
 }
-function skillNames(dir) {
-  return fs
-    .readdirSync(path.join(dir, "skills"), { withFileTypes: true })
+
+test("skills/ holds exactly the instruction-only skills", () => {
+  const dir = path.join(ROOT, "skills");
+  const names = fs
+    .readdirSync(dir, { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name);
-}
+  assert.deepEqual(names.sort(), [...SKILLS].sort());
+  for (const file of walk(dir)) {
+    const info = fs.lstatSync(file);
+    assert.ok(!info.isSymbolicLink(), "skill files cannot be symlinks: " + file);
+    assert.ok(info.isDirectory() || file.endsWith(".md"), "unexpected skill file: " + file);
+  }
+  for (const name of names) {
+    const skill = fs.readFileSync(path.join(dir, name, "SKILL.md"), "utf8");
+    assert.match(skill, new RegExp("^---\\nname: " + name + "\\ndescription: \\S"));
+    assertPlainFrontmatter(skill, name);
+  }
+});
 
 // Claude Code caps SessionStart hook output at 10,000 characters; beyond that the core
 // rules would be replaced by a file path and a 2,000-character preview.
 const HOOK_OUTPUT_LIMIT = 10000;
 
-test("each plugin holds named instruction-only skills under plugins/<name>/skills", () => {
-  for (const plugin of marketplace.plugins) {
-    assert.equal(plugin.source, "./plugins/" + plugin.name);
-    assert.equal(plugin.skills, undefined, "plugins use the default skills/ scan");
-    assert.match(plugin.version, /^\d+\.\d+\.\d+$/);
-    assert.ok(plugin.description);
-    const dir = path.join(ROOT, plugin.source);
-    const hasHook = HOOK_PLUGINS.includes(plugin.name);
-    assert.equal(fs.existsSync(path.join(dir, "hooks")), hasHook, plugin.name + ": unexpected hooks/");
-    assertInstructionOnly(dir, [
-      ".codex-plugin/plugin.json",
-      ...(hasHook ? ["hooks/hooks.json", ".codex-plugin/hooks.json"] : []),
-    ]);
-    const names = skillNames(dir);
-    assert.deepEqual(names.sort(), [...PLUGIN_SKILLS[plugin.name]].sort(), plugin.name + ": skill inventory");
-    for (const name of names) {
-      const skill = fs.readFileSync(path.join(dir, "skills", name, "SKILL.md"), "utf8");
-      assert.match(skill, new RegExp("^---\\nname: " + name + "\\ndescription: \\S"));
-      assertPlainFrontmatter(skill, name);
-    }
-    if (!hasHook) {
-      assert.ok(!fs.existsSync(path.join(dir, "CORE.md")), plugin.name + ": CORE.md without its hook");
-      continue;
-    }
-    const core = fs.readFileSync(path.join(dir, "CORE.md"), "utf8");
-    assert.ok(core.length < HOOK_OUTPUT_LIMIT, "CORE.md must stay under the hook output cap");
-    for (const name of names) assert.ok(core.includes("`" + name + "`"), "CORE.md must list " + name);
-    const hooks = JSON.parse(fs.readFileSync(path.join(dir, "hooks/hooks.json"), "utf8"));
-    assert.deepEqual(hooks, {
-      hooks: {
-        SessionStart: [
-          { hooks: [{ type: "command", command: "cat", args: ["${CLAUDE_PLUGIN_ROOT}/CORE.md"] }] },
-        ],
-      },
-    });
-  }
+test("the plugin's only hook prints CORE.md, and nothing else loads from the root", () => {
+  for (const name of UNEXPECTED_COMPONENTS)
+    assert.ok(!fs.existsSync(path.join(ROOT, name)), "unexpected plugin component at the root: " + name);
+  assert.deepEqual(fs.readdirSync(path.join(ROOT, "hooks")), ["hooks.json"]);
+  assert.deepEqual(readJson("hooks/hooks.json"), {
+    hooks: {
+      SessionStart: [
+        { hooks: [{ type: "command", command: "cat", args: ["${CLAUDE_PLUGIN_ROOT}/CORE.md"] }] },
+      ],
+    },
+  });
+  const core = fs.readFileSync(path.join(ROOT, "CORE.md"), "utf8");
+  assert.ok(core.length < HOOK_OUTPUT_LIMIT, "CORE.md must stay under the hook output cap");
+  for (const name of WORKFLOW_SKILLS) assert.ok(core.includes("`" + name + "`"), "CORE.md must list " + name);
 });
 
-test("the Codex marketplace and manifests mirror the Claude marketplace", () => {
+test("the Codex marketplace and manifest mirror the Claude marketplace", () => {
   assert.equal(codexMarketplace.name, marketplace.name);
-  assert.deepEqual(
-    codexMarketplace.plugins.map((p) => p.name).sort(),
-    marketplace.plugins.map((p) => p.name).sort(),
-  );
-  for (const plugin of marketplace.plugins) {
-    const entry = codexMarketplace.plugins.find((p) => p.name === plugin.name);
-    assert.deepEqual(entry.source, { source: "local", path: plugin.source });
-    assert.equal(entry.version, plugin.version);
-    assert.equal(entry.description, plugin.description);
-    assert.ok(entry.policy && entry.policy.installation && entry.policy.authentication && entry.category);
-    const manifest = JSON.parse(
-      fs.readFileSync(path.join(ROOT, plugin.source, ".codex-plugin/plugin.json"), "utf8"),
-    );
-    assert.equal(manifest.name, plugin.name);
-    assert.equal(manifest.version, plugin.version);
-    assert.equal(manifest.description, plugin.description);
-    assert.equal(manifest.skills, "./skills/");
-    // Codex discovers hooks/hooks.json unless the manifest names hooks explicitly, and it
-    // drops the Claude hook's args. Point Codex at an explicit empty hooks file instead.
-    if (HOOK_PLUGINS.includes(plugin.name)) {
-      assert.equal(manifest.hooks, "./.codex-plugin/hooks.json");
-      const codexHooks = JSON.parse(
-        fs.readFileSync(path.join(ROOT, plugin.source, ".codex-plugin/hooks.json"), "utf8"),
-      );
-      assert.deepEqual(codexHooks, { hooks: {} });
-    } else {
-      assert.equal(manifest.hooks, undefined);
-    }
-  }
+  assert.equal(codexMarketplace.plugins.length, 1);
+  const entry = codexMarketplace.plugins[0];
+  assert.equal(entry.name, plugin.name);
+  assert.deepEqual(entry.source, { source: "local", path: plugin.source });
+  assert.equal(entry.version, plugin.version);
+  assert.equal(entry.description, plugin.description);
+  assert.ok(entry.policy && entry.policy.installation && entry.policy.authentication && entry.category);
+  const manifest = readJson(".codex-plugin/plugin.json");
+  assert.equal(manifest.name, plugin.name);
+  assert.equal(manifest.version, plugin.version);
+  assert.equal(manifest.description, plugin.description);
+  assert.equal(manifest.skills, "./skills/");
+  // Codex discovers hooks/hooks.json unless the manifest names hooks explicitly, and it
+  // drops the Claude hook's args. Point Codex at an explicit empty hooks file instead.
+  assert.equal(manifest.hooks, "./.codex-plugin/hooks.json");
+  assert.deepEqual(readJson(".codex-plugin/hooks.json"), { hooks: {} });
+  assert.deepEqual(fs.readdirSync(path.join(ROOT, ".codex-plugin")).sort(), ["hooks.json", "plugin.json"]);
 });
 
-test("skills/ holds only Handoff, hidden from `npx skills` discovery", () => {
+test("handoff/ holds only Handoff, hidden from `npx skills` discovery", () => {
   const names = fs
-    .readdirSync(path.join(ROOT, "skills"), { withFileTypes: true })
+    .readdirSync(path.join(ROOT, "handoff"), { withFileTypes: true })
     .filter((entry) => entry.isDirectory())
     .map((entry) => entry.name);
   assert.deepEqual(names.sort(), [...HANDOFF_SKILLS].sort());
   for (const name of HANDOFF_SKILLS) {
-    const skill = fs.readFileSync(path.join(ROOT, "skills", name, "SKILL.md"), "utf8");
+    const skill = fs.readFileSync(path.join(ROOT, "handoff", name, "SKILL.md"), "utf8");
     assert.match(frontmatter(skill, name), /\nmetadata:\n  internal: true$/);
   }
 });
 
-test("README pins the tag that matches each plugin version", () => {
+test("README pins the tag that matches the plugin version", () => {
   const readme = fs.readFileSync(path.join(ROOT, "README.md"), "utf8");
-  for (const plugin of marketplace.plugins) {
-    const tag = plugin.name + "--v" + plugin.version;
-    const pinned = [...readme.matchAll(new RegExp(plugin.name + "--v[0-9]+\\.[0-9]+\\.[0-9]+", "g"))].map((m) => m[0]);
-    assert.ok(pinned.length > 0, "README must pin " + tag);
-    assert.deepEqual([...new Set(pinned)], [tag]);
-  }
+  const tag = plugin.name + "--v" + plugin.version;
+  const pinned = [...readme.matchAll(/(?<![\w-])skills--v[0-9]+\.[0-9]+\.[0-9]+/g)].map((m) => m[0]);
+  assert.ok(pinned.length > 0, "README must pin " + tag);
+  assert.deepEqual([...new Set(pinned)], [tag]);
 });
 
-// Each released version records a digest of its plugin folder, so changing the
-// plugin without bumping its version (which Claude Code needs to ship an update) fails.
-function digest(dir) {
+// Each released version records a digest of the plugin's content, so changing it without
+// bumping the version (which Claude Code and Codex need to ship an update) fails.
+function digest(entries) {
   const hash = crypto.createHash("sha256");
-  for (const file of walk(dir).filter((f) => fs.lstatSync(f).isFile()).sort()) {
-    hash.update(path.relative(dir, file).split(path.sep).join("/") + "\0");
-    hash.update(fs.readFileSync(file));
+  for (const [name, bytes] of entries) {
+    hash.update(name + "\0");
+    hash.update(bytes);
     hash.update("\0");
   }
   return hash.digest("hex");
 }
 
-test("each plugin's content matches the digest recorded for its version", () => {
-  const releases = JSON.parse(
-    fs.readFileSync(path.join(ROOT, ".claude-plugin/releases.json"), "utf8"),
+test("the plugin's content matches the digest recorded for its version", () => {
+  const releases = readJson(".claude-plugin/releases.json");
+  const actual = digest(contentFiles(ROOT).map((f) => [f, fs.readFileSync(path.join(ROOT, f))]));
+  assert.equal(
+    (releases[plugin.name] || {})[plugin.version],
+    actual,
+    plugin.name + " changed: bump its version and record " + actual + " for it",
   );
-  for (const plugin of marketplace.plugins) {
-    const recorded = releases[plugin.name] || {};
-    const actual = digest(path.join(ROOT, plugin.source));
-    assert.equal(
-      recorded[plugin.version],
-      actual,
-      plugin.name + " changed: bump its version and record " + actual + " for it",
-    );
-  }
 });
 
 // Released versions are immutable: once <name>--v<version> is tagged, its recorded digest
@@ -208,9 +187,8 @@ function git(args) {
   });
   return result.status === 0 ? result.stdout : null;
 }
-function taggedDigest(tag, source) {
-  const prefix = source.replace(/^\.\//, "");
-  const listing = git(["ls-tree", "-r", "-z", tag, "--", prefix]);
+function taggedFiles(tag, prefixes) {
+  const listing = git(["ls-tree", "-r", "-z", tag, "--", ...prefixes]);
   if (listing === null) return null;
   const files = listing
     .toString("utf8")
@@ -221,30 +199,29 @@ function taggedDigest(tag, source) {
       return { type: meta.split(" ")[1], file };
     });
   assert.ok(files.every((entry) => entry.type === "blob"), tag + " contains non-file entries");
-  const hash = crypto.createHash("sha256");
-  for (const { file } of files.sort((a, b) => (a.file < b.file ? -1 : a.file > b.file ? 1 : 0))) {
-    hash.update(path.posix.relative(prefix, file) + "\0");
-    hash.update(git(["cat-file", "blob", tag + ":" + file]));
-    hash.update("\0");
-  }
-  return hash.digest("hex");
+  return files.map((entry) => entry.file).sort((a, b) => (a < b ? -1 : a > b ? 1 : 0));
+}
+function taggedDigest(tag, source) {
+  // A root plugin is versioned by its CONTENT paths, a folder plugin by its whole folder.
+  // Earlier releases were folder plugins, so each tag is read with its own source.
+  const prefix = source.replace(/^\.\/?/, "");
+  const files = taggedFiles(tag, prefix === "" ? CONTENT : [prefix]);
+  if (files === null) return null;
+  return digest(files.map((file) => [path.posix.relative(prefix || ".", file), git(["cat-file", "blob", tag + ":" + file])]));
 }
 
 test("released versions keep the digest of their tagged content", (t) => {
   if (git(["rev-parse", "--is-inside-work-tree"]) === null) return t.skip("not a git checkout");
-  const releases = JSON.parse(
-    fs.readFileSync(path.join(ROOT, ".claude-plugin/releases.json"), "utf8"),
-  );
-  for (const plugin of marketplace.plugins) {
-    for (const [version, recorded] of Object.entries(releases[plugin.name] || {})) {
-      const tag = plugin.name + "--v" + version;
+  const releases = readJson(".claude-plugin/releases.json");
+  // Check every recorded release, including the former workflow and ios-design plugins.
+  for (const [name, versions] of Object.entries(releases)) {
+    for (const [version, recorded] of Object.entries(versions)) {
+      const tag = name + "--v" + version;
       if (git(["rev-parse", "-q", "--verify", "refs/tags/" + tag]) === null) continue;
-      // A plugin may move between releases, so use the source recorded at the tag itself.
       const tagged = JSON.parse(git(["cat-file", "blob", tag + ":.claude-plugin/marketplace.json"]).toString("utf8"));
-      const entry = tagged.plugins.find((p) => p.name === plugin.name);
-      assert.ok(entry, tag + " exists but its marketplace does not list " + plugin.name);
-      const source = entry.source;
-      assert.equal(recorded, taggedDigest(tag, source), tag + " is released; bump the version instead");
+      const entry = tagged.plugins.find((p) => p.name === name);
+      assert.ok(entry, tag + " exists but its marketplace does not list " + name);
+      assert.equal(recorded, taggedDigest(tag, entry.source), tag + " is released; bump the version instead");
     }
   }
 });
